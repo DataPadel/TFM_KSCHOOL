@@ -1,0 +1,180 @@
+// Con este formulario se generan 3185049600
+
+{
+    "preguntas": [
+      {
+        "pregunta": "Indique su peso",
+        "respuestas": [
+          "Menos de 60 Kg",
+          "Entre 61 y 70 Kg",
+          "Entre 71 y 80 Kg",
+          "Entre 81 y 90 Kg",
+          "Más de 91 Kg",
+          "Ni idea"
+        ]
+      },
+      {
+        "pregunta": "Indique su altura",
+        "respuestas": [
+          "Entre 1,50 y 1,60 metros",
+          "Entre 1,61 y 1,70 metros",
+          "Entre 1,71 y 1,80 metros",
+          "Entre 1,81 y 2,00 metros"
+        ]
+      },
+      {
+        "pregunta": "Indique su edad",
+        "respuestas": [
+          "Menos de 25 años",
+          "Entre 26 y 30 años",
+          "Entre 31 y 35 años",
+          "Entre 36 y 40 años",
+          "Entre 41 y 45 años",
+          "Entre 46 y 50 años",
+          "Entre 51 y 55 años",
+          "Más de 60 años"
+        ]
+      },
+      {
+        "pregunta": "¿Cúal es su género?",
+        "respuestas": [
+          "Femenino",
+          "Masculino"
+        ]
+      },
+      {
+        "pregunta": "¿Cuántas horas juega a la semana?",
+        "respuestas": [
+          "Menos de 2 horas",
+          "Entre 5 y 6.5 horas",
+          "Más de 7.5 horas"
+        ]
+      },
+      {
+        "pregunta": "¿Has practicado o practicas otro deporte?",
+        "respuestas": [
+          "Sí",
+          "No"
+        ]
+      },
+      {
+        "pregunta": "¿De raqueta?",
+        "respuestas": [
+          "Sí",
+          "No"
+        ]
+      },
+      {
+        "pregunta": "¿Rango de precio dispuesto a pagar?",
+        "respuestas": [
+          "Entre 0 y 50 €",
+          "Entre 51 y 100 €",
+          "Entre 101 y 150 €",
+          "Entre 151 y 200 €",
+          "Entre 201 y 250 €",
+          "Más de 300 €"
+        ]
+      },
+      {
+        "pregunta": "Indique su lado de juego",
+        "respuestas": [
+          "Drive",
+          "Revés"
+        ]
+      },
+      {
+        "pregunta": "Indique su nivel de juego",
+        "respuestas": [
+          "Intermedio",
+          "Avanzado"
+        ]
+      },
+      {
+        "pregunta": "Tipo de juego",
+        "respuestas": [
+          "Ofensivo",
+          "Defensivo"
+        ]
+      },
+      {
+        "pregunta": "¿Qué tipo de balance te gusta?",
+        "respuestas": [
+          "Medio",
+          "Alto"
+        ]
+      },
+      {
+        "pregunta": "¿Has recibido clases?",
+        "respuestas": [
+          "Sí",
+          "No"
+        ]
+      },
+      {
+        "pregunta": "¿Estás recibiendo?",
+        "respuestas": [
+          "Sí",
+          "No"
+        ]
+      },
+      {
+        "pregunta": "Indique su nivel de playtomic",
+        "respuestas": [
+          "Entre 0 y 0.5",
+          "Entre 0.5 y 1",
+          "Entre 1 y 1.5",
+          "Entre 1.5 y 2",
+          "Entre 2 y 2.5",
+          "Entre 2.5 y 3",
+          "Entre 3 y 3.5",
+          "Entre 3.5 y 4",
+          "Entre 4 y 4.5",
+          "Entre 4.5 y 5"
+        ]
+      },
+      {
+        "pregunta": "¿Has tenido alguna de las siguientes lesiones previamente (lumbares, epicondilitis, gemelos, fascitis, cervicales u hombros)?",
+        "respuestas": [
+          "Sí",
+          "No"
+        ]
+      },
+      {
+        "pregunta": "¿Bebes suficiente agua?",
+        "respuestas": [
+          "Sí",
+          "No"
+        ]
+      },
+      {
+        "pregunta": "¿Cuál?",
+        "respuestas": [
+          "Lumbares",
+          "Epicondilitis",
+          "Gemelos",
+          "Fascitis",
+          "Cervicales",
+          "Hombros"
+        ]
+      },
+      {
+        "pregunta": "¿Con qué frecuencia?",
+        "respuestas": [
+          "Siempre que juego",
+          "Siempre que juego defensivamente",
+          "Siempre que juego ofensivamente",
+          "Casi siempre que juego intensamente",
+          "Rara vez cuando juego"
+        ]
+      },
+      {
+        "pregunta": "¿Hace cuánto?",
+        "respuestas": [
+          "Menos de 3 meses",
+          "Entre 3 y 6 meses",
+          "Más de 6 meses"
+        ]
+      }
+    ]
+  }
+  
