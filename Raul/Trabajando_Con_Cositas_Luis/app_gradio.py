@@ -29,15 +29,35 @@ def sincronizar_dataframes(df_form, df_palas):
     df_palas['Score_Escalar'] = df_form['Score_Escalar'].values
     return df_form, df_palas
 
+# Renombrar columnas del DataFrame df_form
+def renombrar_columnas(df_form):
+    df_form.rename(columns={
+        "Cuantas horas juegas a la semana": "Horas a la Semana",
+        "Indique su peso": "Peso",
+        "Indique su altura": "Altura",
+        "Indique su Lado de Juego": "Lado de Juego",
+        "Indique su nivel de juego": "Nivel de Juego",
+        "Que tipo de balance te gusta": "Balance",
+        "Has tenido alguna de las siguientes lesiones ...": "Lesiones Antiguas",
+        "Con que frecuencia": "Frecuencia Lesion",
+        "Hace cuanto": "Tiempo entre Lesiones"
+    }, inplace=True)
+
+    # Eliminar columnas no deseadas
+    df_form = df_form.drop(columns=["Score", "Score_Escalar", "Rango de precio dispuesto a pagar"], errors='ignore')
+    return df_form
+
 # Mostrar detalles del registro seleccionado en forma tabular
 def mostrar_detalles_registro_tabular(df_form, index):
+    # Seleccionar la fila correspondiente
     selected_row = df_form.iloc[index]
-    
+
     # Convertir el registro a un DataFrame con columnas Característica y Valor
     detalles_df = pd.DataFrame({
         "Característica": selected_row.index,
         "Valor": selected_row.values
     })
+
     return detalles_df
 
 # Encontrar vecinos más cercanos con columnas específicas
@@ -80,6 +100,9 @@ def main(index):
         df_form, df_palas = cargar_dataframes()
         df_form, df_palas = sincronizar_dataframes(df_form, df_palas)
 
+        # Renombrar y limpiar columnas del DataFrame
+        df_form = renombrar_columnas(df_form)
+
         # Seleccionar fila del DataFrame
         selected_row = df_palas.iloc[index]
         x_random, y_random, z_random = selected_row['score_lesion'], selected_row['score_nivel'], selected_row['Score_Escalar']
@@ -93,7 +116,7 @@ def main(index):
         ax.set_ylabel('Nivel (%)')
         ax.set_zlabel('Formulario (%)')
         ax.legend()
-        
+
         # Encontrar vecinos más cercanos
         vecinos_df = encontrar_vecinos_mas_cercanos(df_palas, x_random, y_random)
 
@@ -105,22 +128,22 @@ def main(index):
     except Exception as e:
         return None, None, f"Error: {str(e)}"
 
-# Interfaz Gradio con tabla personalizada y eventos
-with gr.Blocks() as demo:
-    # Fila superior dividida al 50%
+# Interfaz Gradio con tabla personalizada y eventos con paleta de colores integrada
+with gr.Blocks(css=".gradio-container {background-color: #FFFFFF; color: #0072CE;}") as demo:
+    
     with gr.Row():
-        with gr.Column(scale=1):  # Columna izquierda para el título
-            gr.Markdown("## Plai Padel Pro")
+        with gr.Column(scale=1):  
+            gr.Markdown("<h1 style='color:#3CB043;'>Plai Padel Pro</h1>")
         
-        with gr.Column(scale=1):  # Columna derecha para el slider
+        with gr.Column(scale=1):  
             index_slider = gr.Slider(0, 1000, step=1, label="Índice del Registro")
     
     with gr.Row():
         with gr.Column(scale=1):
             registro_detalle_tabla = gr.Dataframe(
                 label="Detalles del Registro Seleccionado",
-                column_widths=[50, 50],  # Ajuste para que cada columna ocupe el mismo ancho (50%)
-                interactive=False       # Deshabilitar edición para evitar errores accidentales
+                column_widths=[50, 50],
+                interactive=False       
             )
         
         with gr.Column(scale=2):
