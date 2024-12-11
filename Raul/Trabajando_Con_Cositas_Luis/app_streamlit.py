@@ -77,48 +77,134 @@ def encontrar_vecinos_mas_cercanos(df_palas, x_random, y_random):
     
     return pd.DataFrame(resultados_tabular)
 
+# Configuración de la página para ancho completo
+st.set_page_config(page_title="Formulario", layout="wide")
+
+# CSS personalizado para eliminar márgenes y ajustar espaciado
+
+custom_css = """
+
+<style>
+/* Centrar todo el contenido y limitar su ancho al 80% */
+[data-testid="stAppViewContainer"] {
+    max-width: 80%; /* Ancho máximo del contenido */
+    margin: 0 auto; /* Centrar horizontalmente */
+    padding-top: 1rem; /* Espaciado superior */
+    padding-bottom: 1rem; /* Espaciado inferior */
+}
+
+/* Ajustar márgenes entre columnas */
+.css-1kyxreq {
+    padding-left: 0rem;
+    padding-right: 0rem;
+}
+
+/* Centrar el botón de enviar */
+button[kind="primary"] {
+    margin-top: 1rem;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Ajustar márgenes de los expanders */
+[data-testid="stExpander"] {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+}
+</style>
+"""
+
+# Aplicar CSS personalizado
+st.markdown(custom_css, unsafe_allow_html=True)
+
 # Función para el formulario
 def formulario():
 
-    #Titulo del Formulario
+    # Título del Formulario
     st.title("Formulario")
     
-    #Opciones de las distintos desplegables de los input
-    opciones_peso = ["Entre 51 y 70 Kg","Entre 71 y 90 Kg","Más de 91 Kg"]
-    opciones_altura = ["Entre 1,51 y 1,70 metros","Entre 1,71 y 1,80 metros","Mas de 1,80 metros"]
-    opciones_nivel_de_juego = ["Iniciacion", "Intermedio", "Avanzado"]
-    opciones_tipo_de_juego = ["Ofensivo","Defensivo"]
-    opciones_balance = ["Medio","Alto"]
-    opciones_horas_semana = ["Menos de 3,5 horas","Mas de 3.5 horas"]
-    opciones_rango_precio = ["Menos de 100","Entre 100 y 200","Mas de 200"]
-    opciones_rango_juego = ["Drive","Reves"]
-    opciones_lesiones_antiguas = ["Lumbares","Epicondilitis","Gemelos o fascitis","Cervicales","Hombros","Ninguna"]
-    opciones_frecuencia_lesion = ["Siempre que juego defensivamente","Siempre que juego ofensivamente","Casi siempre que juego intensamente","Rara vez cuando juego"]
-    opciones_cuanto_lesion = ["Menos de 3 meses","Entre 3 y 6 meses","Mas de 6 meses"]
+    # Opciones de los distintos desplegables de los inputs
+    opciones_peso = {"Entre 51 y 70 Kg": 0, "Entre 71 y 90 Kg": 0, "Más de 91 Kg": 0.5}
+    opciones_altura = {"Entre 1,51 y 1,70 metros": 0, "Entre 1,71 y 1,80 metros": 0, "Mas de 1,80 metros": 0.5}
+    opciones_nivel_de_juego = {"Iniciacion": 0, "Intermedio": 1, "Avanzado": 2}
+    opciones_tipo_de_juego = {"Ofensivo": 1, "Defensivo": 0}
+    opciones_balance = {"Medio": 0, "Alto": 0.5}
+    opciones_horas_semana = {"Menos de 3,5 horas": 0, "Mas de 3.5 horas": 0.5}
+    opciones_rango_precio = {"Menos de 100": 0, "Entre 100 y 200": 0, "Mas de 200": 0}
+    opciones_rango_juego = {"Drive": 0, "Reves": 0.5}
+    opciones_lesiones_antiguas = {
+        "Lumbares": 0.5,
+        "Epicondilitis": 0.15,
+        "Gemelos o fascitis": 0.5,
+        "Cervicales": 0.25,
+        "Hombros": 0.5,
+        "Ninguna": 0
+    }
+    opciones_frecuencia_lesion = {
+        "Siempre que juego defensivamente": 0.5,
+        "Siempre que juego ofensivamente": 0.5,
+        "Casi siempre que juego intensamente": 0.25,
+        "Rara vez cuando juego": 0.15
+    }
+    opciones_cuanto_lesion = {
+        "Menos de 3 meses": 0.5,
+        "Entre 3 y 6 meses": 0.25,
+        "Mas de 6 meses": 0.15
+    }
 
-    # Preguntas relativas a la persona
-    peso = st.selectbox("Indica tu peso (kg)", opciones_peso)
-    altura = st.selectbox("Indica tu altura (cm)",opciones_altura)
-    rango_precios =  st.selectbox("¿Cuando dinero estas dispuesto a pagar por una pala?", opciones_rango_precio)
-    horas_semana = st.selectbox("¿Cuántas horas juega a la semana?", opciones_horas_semana)
-    
+    # Crear tres columnas para las preguntas del formulario
+    col1, col2, col3 = st.columns(3)
 
-    #Preguntas relativas al nivel de padel y caracteristicas relacionadas con este
-    nivel_de_juego = st.selectbox("¿Cual es tu Nivel de juego ?", opciones_nivel_de_juego)
-    tipo_de_juego = st.selectbox("¿Que tipo de Juego te gusta?", opciones_tipo_de_juego)
-    tipo_de_balance = st.selectbox("¿Que tipo de Balance te gusta?", opciones_balance)
-    lado_de_juego = st.selectbox("Indique su lado de juego", opciones_rango_juego)
+    # Preguntas relativas a la persona (Columna izquierda)
+    with col1:
+        st.subheader("Datos Personales")
+        peso = st.selectbox("Indica tu peso (kg)", opciones_peso)
+        altura = st.selectbox("Indica tu altura (cm)", opciones_altura)
+        rango_precios = st.selectbox("¿Cuánto dinero estás dispuesto a pagar por una pala?", opciones_rango_precio)
+        horas_semana = st.selectbox("¿Cuántas horas juega a la semana?", opciones_horas_semana)
 
-    #Preguntas relacionadas con las posibles lesiones de padel en el pasado
-    lesiones_antiguas = st.selectbox("¿Has tenido alguna de las siguientes lesiones previamente:  lumbares, epicondilitis, gemelos, fascitis, cervicales u hombros?", opciones_lesiones_antiguas)
-    frecuencia_lesion = st.selectbox("¿Cuando sueles caer lesionado?",opciones_frecuencia_lesion)
-    cuanto_lesion = st.selectbox("¿Cuanto tiempo paso desde tu ultima lesion?",opciones_cuanto_lesion)
+    # Preguntas relativas al nivel de pádel (Columna central)
+    with col2:
+        st.subheader("Nivel de Pádel")
+        nivel_de_juego = st.selectbox("¿Cuál es tu Nivel de juego?", opciones_nivel_de_juego)
+        tipo_de_juego = st.selectbox("¿Qué tipo de Juego te gusta?", opciones_tipo_de_juego)
+        tipo_de_balance = st.selectbox("¿Qué tipo de Balance te gusta?", opciones_balance)
+        lado_de_juego = st.selectbox("Indique su lado de juego", opciones_rango_juego)
 
-   
+    # Preguntas relacionadas con lesiones (Columna derecha)
+    with col3:
+        st.subheader("Lesiones")
+        lesiones_antiguas = st.selectbox(
+            "¿Has tenido alguna de las siguientes lesiones previamente: lumbares, epicondilitis, gemelos, fascitis, cervicales u hombros?",
+            opciones_lesiones_antiguas
+        )
+        frecuencia_lesion = st.selectbox("¿Cuándo sueles caer lesionado?", opciones_frecuencia_lesion)
+        cuanto_lesion = st.selectbox("¿Cuánto tiempo pasó desde tu última lesión?", opciones_cuanto_lesion)
 
-    
-    if st.button("Enviar"):
-        st.success(f"Datos enviados:\nHoras a la semana: {horas_semana}, Peso: {peso}, Altura: {altura}")
+    # Botón Enviar debajo del formulario completo
+    enviar_btn_clicked = st.button("Enviar")
+
+    # Mostrar respuestas debajo del botón si se hace clic en Enviar
+    if enviar_btn_clicked:
+        st.subheader("Respuestas Enviadas")
+        
+        with st.expander("Respuestas Relativas Persona"):
+            st.write(f"**Peso:** {peso}")
+            st.write(f"**Altura:** {altura}")
+            st.write(f"**Precio Dispuesto a Pagar:** {rango_precios}")
+            st.write(f"**Horas a la Semana Jugadas:** {horas_semana}")
+
+        with st.expander("Respuestas Relativas Nivel de Pádel"):
+            st.write(f"**Nivel de Juego:** {nivel_de_juego}")
+            st.write(f"**Tipo de Juego:** {tipo_de_juego}")
+            st.write(f"**Balance:** {tipo_de_balance}")
+            st.write(f"**Lado de Juego:** {lado_de_juego}")
+
+        with st.expander("Respuestas Lesiones Antiguas"):
+            st.write(f"**Lesiones Previas:** {lesiones_antiguas}")
+            st.write(f"**Frecuencia de Lesión:** {frecuencia_lesion}")
+            st.write(f"**Última Lesión:** {cuanto_lesion}")
 
 # Función para el recomendador de pala
 def recomendador_de_pala():
