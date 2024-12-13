@@ -18,18 +18,16 @@ LABEL_MAPPING = {
 def cargar_dataframes():
     df_form = pd.read_json('dataframe_final_formulario.json', lines=True)
     df_palas = pd.read_csv('df_scaled_palas.csv')
+    
+    # Verificar si 'Score_Escalar' existe, si no, calcularlo como placeholder (ejemplo)
     if 'Score_Escalar' not in df_form.columns:
-        raise KeyError("La columna 'Score_Escalar' no existe en 'dataframe_final_formulario.json'.")
+        df_form['Score_Escalar'] = 0.5  # Placeholder o cálculo inicial
+    
+    if 'Score_Escalar' not in df_palas.columns:
+        df_palas['Score_Escalar'] = df_palas['score_nivel'] * 0.5 + df_palas['score_lesion'] * 0.5
+    
     return df_form, df_palas
 
-# Sincronizar DataFrames
-@st.cache_data
-def sincronizar_dataframes(df_form, df_palas):
-    min_rows = min(len(df_form), len(df_palas))
-    df_form = df_form.iloc[:min_rows]
-    df_palas = df_palas.iloc[:min_rows]
-    df_palas['Score_Escalar'] = df_form['Score_Escalar'].values
-    return df_form, df_palas
 
 # Renombrar columnas del DataFrame df_form
 def renombrar_columnas(df_form):
@@ -45,37 +43,71 @@ def renombrar_columnas(df_form):
         "Hace cuanto": "Tiempo entre Lesiones"
     }
     df_form.rename(columns=column_mapping, inplace=True)
-    return df_form.drop(columns=["Score", "Score_Escalar", "Rango de precio dispuesto a pagar"], errors='ignore')
+    return df_form
+    #return df_form.drop(columns=["Score", "Score_Escalar", "Rango de precio dispuesto a pagar"], errors='ignore')
 
 # Mostrar detalles del registro seleccionado en forma tabular
 def mostrar_detalles_registro_tabular(df_form, index):
     selected_row = df_form.iloc[index]
     return pd.DataFrame({"Característica": selected_row.index, "Valor": selected_row.values})
 
-# Encontrar vecinos más cercanos con columnas específicas
-def encontrar_vecinos_mas_cercanos(df_palas, x_random, y_random):
-    reference_points = pd.DataFrame({
-        'score_lesion': [x_random] * 3,
-        'score_nivel': [y_random] * 3,
-        'Balance': [1.0, 2.0, 3.0]
-    })
-    
-    palas_data = df_palas[['Palas', 'Nivel de Juego', 'Tipo de Juego', 'Balance', 'Precio', 'Dureza', 'Forma']].copy()
-    
-    for columna in ['Nivel de Juego', 'Tipo de Juego', 'Balance', 'Dureza', 'Forma']:
-        palas_data[columna] = palas_data[columna].map(LABEL_MAPPING[columna])
 
-    knn = NearestNeighbors(n_neighbors=1)
-    knn.fit(df_palas[['score_lesion', 'score_nivel', 'Balance']])
+# Encontrar vecinos más cercanos con KNN
+def encontrar_vecinos_mas_cercanos_knn(df_palas, x_random, y_random, z_random):
+    knn_features = df_palas[['score_lesion', 'score_nivel', 'Score_Escalar']]
     
-    resultados_tabular = []
-    for _, point in reference_points.iterrows():
-        distances, indices = knn.kneighbors([point])
-        closest_point = palas_data.iloc[indices[0][0]].to_dict()
-        closest_point['Punto'] = f"Punto {point['Balance']}"
-        resultados_tabular.append(closest_point)
+    knn = NearestNeighbors(n_neighbors=3)
+    knn.fit(knn_features)
     
-    return pd.DataFrame(resultados_tabular)
+    reference_point = [[x_random, y_random, z_random]]
+    
+    distances, indices = knn.kneighbors(reference_point)
+    
+    palas_recomendadas = df_palas.iloc[indices[0]]
+    
+    return palas_recomendadas[['Palas', 'Score_Escalar', 'score_nivel', 'score_lesion']]
+
+
+# Función para analizar la relación entre Score y palas recomendadas
+def analizar_relacion_score(df_palas):
+    st.subheader("Relación entre Score y Palas Recomendadas")
+    
+    # Mapear los valores numéricos de "Tipo de Juego" a etiquetas descriptivas
+    if "Tipo de Juego" in df_palas.columns:
+        df_palas["Tipo de Juego Descriptivo"] = df_palas["Tipo de Juego"].map({
+            0: "No data",
+            1: "control",
+            2: "polivalente",
+            3: "potencia"
+        })
+    else:
+        st.error("La columna 'Tipo de Juego' no existe en el DataFrame.")
+        return
+    
+    # Verificar si hay datos en df_palas
+    if df_palas.empty:
+        st.error("El DataFrame 'df_palas' está vacío.")
+        return
+    
+    # Crear checkboxes para seleccionar qué tipos de juego mostrar
+    categorias_unicas = df_palas["Tipo de Juego Descriptivo"].unique()
+    seleccionados = {categoria: st.checkbox(categoria, value=(categoria=="control")) for categoria in categorias_unicas}
+    
+    fig, ax = plt.subplots(figsize=(8, 6))
+    
+    # Iterar sobre las categorías descriptivas seleccionadas
+    for tipo_juego, mostrar in seleccionados.items():
+        if mostrar:
+            subset = df_palas[df_palas["Tipo de Juego Descriptivo"] == tipo_juego]
+            if not subset.empty:
+                ax.scatter(subset["score_lesion"], subset["score_nivel"], label=tipo_juego)
+    
+    ax.set_xlabel("Lesión (%)")
+    ax.set_ylabel("Nivel (%)")
+    ax.legend(title="Tipo de Juego")
+    
+    st.pyplot(fig)
+
 
 # Configuración de la página para ancho completo
 st.set_page_config(page_title="Formulario", layout="wide")
@@ -87,7 +119,7 @@ custom_css = """
 <style>
 /* Centrar todo el contenido y limitar su ancho al 80% */
 [data-testid="stAppViewContainer"] {
-    max-width: 80%; /* Ancho máximo del contenido */
+    max-width: 70%; /* Ancho máximo del contenido */
     margin: 0 auto; /* Centrar horizontalmente */
     padding-top: 1rem; /* Espaciado superior */
     padding-bottom: 1rem; /* Espaciado inferior */
@@ -182,11 +214,37 @@ def formulario():
         frecuencia_lesion = st.selectbox("¿Cuándo sueles caer lesionado?", opciones_frecuencia_lesion)
         cuanto_lesion = st.selectbox("¿Cuánto tiempo pasó desde tu última lesión?", opciones_cuanto_lesion)
 
-    # Botón Enviar debajo del formulario completo
+     # Botón Enviar debajo del formulario completo
     enviar_btn_clicked = st.button("Enviar")
 
-    # Mostrar respuestas debajo del botón si se hace clic en Enviar
     if enviar_btn_clicked:
+        # Crear un nuevo registro con los datos del formulario
+        nuevo_registro = {
+            'Cuantas horas juega a la semana': horas_semana,
+            'Indique su peso': peso,
+            'Indique su altura': altura,
+            'Rango de precio dispuesto a pagar': rango_precios,
+            'Indique su lado de juego': lado_de_juego,
+            'Indique su nivel de juego': nivel_de_juego,
+            'Tipo de juego': tipo_de_juego,
+            'Que tipo de balance te gusta': tipo_de_balance,
+            'Has tenido alguna de las siguientes lesiones previamente lumbares, epicondilitis, gemelos, fascitis, cervicales u hombros': lesiones_antiguas,
+            'Con que frecuencia': frecuencia_lesion,
+            'Hace cuanto': cuanto_lesion,
+            'Score': None, # Placeholder for Score if needed later
+            'Score_Escalar': None # Placeholder for Score_Escalar if needed later
+        }
+
+        # Cargar DataFrame existente y agregar el nuevo registro
+        df_form , df_palas = cargar_dataframes()
+        
+        # Convertir el nuevo registro en un DataFrame y concatenarlo con el existente
+        nuevo_df = pd.DataFrame([nuevo_registro])
+        
+        # Concatenar el nuevo registro al DataFrame existente
+        df_form_actualizado = pd.concat([df_form, nuevo_df], ignore_index=True)
+
+    """
         st.subheader("Respuestas Enviadas")
         
         with st.expander("Respuestas Relativas Persona"):
@@ -204,64 +262,77 @@ def formulario():
         with st.expander("Respuestas Lesiones Antiguas"):
             st.write(f"**Lesiones Previas:** {lesiones_antiguas}")
             st.write(f"**Frecuencia de Lesión:** {frecuencia_lesion}")
-            st.write(f"**Última Lesión:** {cuanto_lesion}")
+            st.write(f"**Última Lesión:** {cuanto_lesion}") """
 
 # Función para el recomendador de pala
 def recomendador_de_pala():
     st.title("Recomendador de Pala")
     
     try:
-        # Cargar y sincronizar los DataFrames
+        # Cargar los DataFrames
         df_form, df_palas = cargar_dataframes()
-        df_form, df_palas = sincronizar_dataframes(df_form, df_palas)
+        
+        # Renombrar columnas del DataFrame formulario
         df_form = renombrar_columnas(df_form)
         
-        # Slider para seleccionar índice del registro
-        index = st.slider("Índice del Registro", min_value=0, max_value=len(df_palas) - 1, step=1)
-        
-        # Seleccionar fila del DataFrame
-        selected_row = df_palas.iloc[index]
-        x_random, y_random, z_random = selected_row['score_lesion'], selected_row['score_nivel'], selected_row['Score_Escalar']
-        
-        # Crear gráfico interactivo (matplotlib)
-        fig = plt.figure(figsize=(10, 7))
-        ax = fig.add_subplot(111, projection='3d')
-        ax.scatter(df_palas['score_lesion'], df_palas['score_nivel'], df_palas['Score_Escalar'], color='blue', label='Datos Palas')
-        ax.scatter(x_random, y_random, z_random, color='red', s=200, label='Pala Seleccionada')
-        ax.set_xlabel('Lesión (%)')
-        ax.set_ylabel('Nivel (%)')
-        ax.set_zlabel('Formulario (%)')
-        ax.legend()
-        
-        st.pyplot(fig)  # Mostrar gráfico interactivo
-        
-        # Encontrar vecinos más cercanos
-        vecinos_df = encontrar_vecinos_mas_cercanos(df_palas, x_random, y_random)
+        # Slider para seleccionar índice del registro en el formulario
+        index = st.slider("Índice del Registro Formulario", min_value=0, max_value=len(df_form) - 1, step=1)
         
         # Mostrar detalles del registro seleccionado en forma tabular
         detalles_registro_df = mostrar_detalles_registro_tabular(df_form, index)
         
         st.subheader("Detalles del Registro Seleccionado")
         st.dataframe(detalles_registro_df)
+
+        # Obtener valores del registro seleccionado en el formulario
+        score_escalar = df_form.iloc[index]['Score_Escalar']
         
-        st.subheader("Vecinos Más Cercanos")
-        st.dataframe(vecinos_df)
+        # Crear gráfico interactivo (matplotlib)
+        st.subheader("Gráfico Interactivo")
+        
+        fig = plt.figure(figsize=(7, 5))
+        ax = fig.add_subplot(111, projection='3d')
+        
+        ax.scatter(df_palas['score_lesion'], df_palas['score_nivel'], df_palas['Score_Escalar'], color='blue', label='Datos Palas')
+        
+        ax.scatter([df_palas['score_lesion'].mean()], [df_palas['score_nivel'].mean()], [score_escalar], color='red', s=200, label='Registro Seleccionado')
+        
+        ax.set_xlabel('Lesión (%)')
+        ax.set_ylabel('Nivel (%)')
+        ax.set_zlabel('Formulario (%)')
+        ax.legend()
+        
+        st.pyplot(fig) 
+        
+        # Encontrar vecinos más cercanos con KNN (palas recomendadas)
+        st.subheader("Palas Recomendadas")
+        
+        x_random = df_palas['score_lesion'].mean()
+        y_random = df_palas['score_nivel'].mean()
+        
+        palas_recomendadas_df = encontrar_vecinos_mas_cercanos_knn(df_palas, x_random=x_random, y_random=y_random, z_random=score_escalar)
+        
+        st.dataframe(palas_recomendadas_df)
+
+        # Analizar relación entre Score y Palas Recomendadas
+        analizar_relacion_score(df_palas)
     
     except Exception as e:
-        st.error(f"Error: {str(e)}")
+        st.error(f"Error al generar el gráfico o procesar los datos: {str(e)}")
+
 
 # Menú lateral moderno con streamlit-option-menu
 with st.sidebar:
-    opcion_seleccionada = option_menu(
-        menu_title="Plai Padel Pro",
-        options=["Formulario", "Recomendador de Pala"],
-        icons=["pencil-fill", "bar-chart-fill"],
-        menu_icon="cast",
-        default_index=0,
-    )
+   opcion_seleccionada = option_menu(
+       menu_title="Plai Padel Pro",
+       options=["Formulario", "Recomendador de Pala"],
+       icons=["pencil-fill", "bar-chart-fill"],
+       menu_icon="cast",
+       default_index=0,
+   )
 
 # Mostrar la opción seleccionada
 if opcion_seleccionada == "Formulario":
-    formulario()
+   formulario()
 elif opcion_seleccionada == "Recomendador de Pala":
-    recomendador_de_pala()
+   recomendador_de_pala()
