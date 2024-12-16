@@ -7,7 +7,7 @@ import plotly.express as px
 import seaborn as sns
 
 """
-APP STREAMLIT V1 (Version Inicial - PODEIS REVENTARLA PARA PRUEBAS)
+APP STREAMLIT V2 (INCORPORACION DE REGISTROS - ULTIMA VERSION - CUIDADO CON MODIFICAR)
 
 COMO VISUALIZAR STREAMLIT EN LOCAL
 
@@ -22,8 +22,24 @@ COMO VISUALIZAR STREAMLIT EN LOCAL
 
    streamlit run <nombre_archivo_version>.py
    Ejemplo --- streamlit run app_streamlit_V2.py
+  
 
+CAMBIOS EN LA VERSION
+
+  Funmcionando
+
+- Se pueden introducir los registros mediante el formulario. Utilizas los desplegables y le das a enviar
+  Se mostrara debajo una tabla con el registro ingresado. Si cambias a la ventana a Recomendador de Pala
+  y vas a la barra de seleccionar el indice de Registro vas a ver que ha cambiado el numerito y ha subido
+  una unidad. LOS REGISTROS SON EN CACHE, CADA VEZ QUE LEVANTAMOS LA APLICACION LOS REGISTROS SE BORRAN
+
+  Otros Cambios
+
+- Son pruebas mediante archivos .csv ya cargados de como implantar un KNN y graficos. Estos estan sujetos
+  a modificaciones
+  
 """
+
 
 # Diccionario de mapeo para convertir valores numéricos a etiquetas descriptivas
 LABEL_MAPPING = {
