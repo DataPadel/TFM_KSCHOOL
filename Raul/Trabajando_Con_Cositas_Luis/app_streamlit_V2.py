@@ -6,6 +6,10 @@ from streamlit_option_menu import option_menu
 import plotly.express as px
 import seaborn as sns
 
+# Configuración de la página para ancho completo
+st.set_page_config(page_title="Formulario", layout="wide")
+
+
 """
 APP STREAMLIT V2 (INCORPORACION DE REGISTROS - ULTIMA VERSION - CUIDADO CON MODIFICAR)
 
@@ -40,7 +44,6 @@ CAMBIOS EN LA VERSION
   
 """
 
-
 # Diccionario de mapeo para convertir valores numéricos a etiquetas descriptivas
 LABEL_MAPPING = {
     "Balance": {0: "No data", 1: "Bajo", 2: "Medio", 3: "Alto"},
@@ -49,6 +52,8 @@ LABEL_MAPPING = {
     "Forma": {0: "No Data", 1: "Redonda", 2: "Lágrima", 3: "Diamante"},
     "Tipo de Juego": {0: "No Data", 1: "Control", 2: "Polivalente", 3: "Potencia"}
 }
+
+
 
 # Función para cargar y validar los DataFrames
 @st.cache_data
@@ -236,9 +241,6 @@ def graficar_distribucion_caracteristicas(palas_recomendadas):
     )
     
     st.plotly_chart(fig_barra)
-
-# Configuración de la página para ancho completo
-st.set_page_config(page_title="Formulario", layout="wide")
 
 # CSS personalizado para eliminar márgenes y ajustar espaciado
 

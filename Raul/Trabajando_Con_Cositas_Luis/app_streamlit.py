@@ -6,6 +6,9 @@ from streamlit_option_menu import option_menu
 import plotly.express as px
 import seaborn as sns
 
+# Configuración de la página para ancho completo
+st.set_page_config(page_title="Formulario", layout="wide")
+
 """
 APP STREAMLIT V1 (Version Inicial - PODEIS REVENTARLA PARA PRUEBAS)
 
@@ -220,9 +223,6 @@ def graficar_distribucion_caracteristicas(palas_recomendadas):
     )
     
     st.plotly_chart(fig_barra)
-
-# Configuración de la página para ancho completo
-st.set_page_config(page_title="Formulario", layout="wide")
 
 # CSS personalizado para eliminar márgenes y ajustar espaciado
 
