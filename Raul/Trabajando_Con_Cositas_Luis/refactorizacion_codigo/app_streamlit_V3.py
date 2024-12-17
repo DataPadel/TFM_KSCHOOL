@@ -41,6 +41,10 @@ CAMBIOS EN LA VERSION
   - Se ha creado un fichero de utilidades para ir despejando el codigo de la clase principal "app_streamlit_V3.py"
     En este fichero tienes los DICCIONARIOS y el ALGORITMO. Asi que si quieres cambiar algo de esto has de mirar
     y cambiar utilidades.py
+
+    
+PARA CERRAR LA TERMINAL DE STREAMLIT CTOL + C | CTRL + Z
+
 """
 
 # Función para cargar y validar los DataFrames
