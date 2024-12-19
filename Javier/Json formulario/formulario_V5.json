@@ -1,0 +1,97 @@
+{
+        "pregunta": "Cuantas horas juega a la semana",
+        "respuestas": [
+          "Menos de 3,5 horas",
+          "Mas de 3.5 horas"
+        ]
+      },
+      {
+        "pregunta": "Indique su peso",
+        "respuestas": [
+          "Entre 51 y 70 Kg",
+          "Entre 71 y 90 Kg",
+          "Más de 91 Kg"
+        ]
+      },
+      {
+        "pregunta": "Indique su sexo",
+        "respuestas": [
+          "Mujer",
+          "Hombre"
+        ]
+      },
+      {
+        "pregunta": "Indique su altura",
+        "respuestas": [
+          "Entre 1,51 y 1,70 metros",
+          "Entre 1,71 y 1,80 metros",
+          "Mas de 1,80 metros"
+        ]
+      },
+      {
+        "pregunta": "Rango de precio dispuesto a pagar",
+        "respuestas": [
+          "Menos de 100",
+          "Entre 100 y 200 ",
+          "Mas de 200 "
+        ]
+      },
+      {
+        "pregunta": "Indique su lado de juego",
+        "respuestas": [
+          "Drive",
+          "Reves"
+        ]
+      },
+      {
+        "pregunta": "Indique su nivel de juego",
+        "respuestas": [
+          "Iniciacion",
+          "Intermedio",
+          "Avanzado"
+        ]
+      },
+      {
+        "pregunta": "Tipo de juego",
+        "respuestas": [
+          "Ofensivo",
+          "Defensivo"
+        ]
+      },
+      {
+        "pregunta": "Que tipo de balance te gusta",
+        "respuestas": [
+          "Medio",
+          "Alto"
+        ]
+      },
+      {
+        "pregunta": "Has tenido alguna de las siguientes lesiones previamente lumbares, epicondilitis, gemelos, fascitis, cervicales u hombros",
+        "respuestas": [
+          "Lumbares",
+          "Epicondilitis",
+          "Gemelos o fascitis",
+          "Cervicales",
+          "Hombros",
+          "Ninguna"
+        ]
+      },
+      {
+        "pregunta": "Con que frecuencia",
+        "respuestas": [
+          "Siempre que juego defensivamente",
+          "Siempre que juego ofensivamente",
+          "Casi siempre que juego intensamente",
+          "Rara vez cuando juego"
+        ]
+      },
+      {
+        "pregunta": "Hace cuanto",
+        "respuestas": [
+          "Menos de 3 meses",
+          "Entre 3 y 6 meses",
+          "Mas de 6 meses"
+        ]
+      }
+
+];
