@@ -1,23 +1,23 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-from sklearn.neighbors import NearestNeighbors
 import streamlit as st
 from streamlit_option_menu import option_menu
 import plotly.express as px
 import seaborn as sns
 
-#Import archivos de utilidas : utilidades y tratamiento_de_datos
-from utilidades import  descargar_generar_archivo_palas_s3
-from tratamiento_de_datos import procesar_datos_formulario_csv,crear_dataframes_con_scores,procesar_scores_y_guardar
+#Import archivos de utilidas : utilidades y tratamiento_de_datos_formulario
+from utilidades.utilidades import  descargar_generar_archivo_palas_s3
+from utilidades.tratamiento_de_datos.tratamiento_de_datos_formulario import procesar_datos_formulario_csv,crear_dataframes_con_scores,procesar_scores_y_guardar
+from utilidades.tratamiento_de_datos.tratamiento_de_datos_palas import lectura_tratamiento_datos_palas, labelizar_columnas, calcular_scores, escalar_columnas, generar_graficos
 
 #Algoritmo importado(KNN)
-from utilidades import encontrar_vecinos_mas_cercanos_knn
+from utilidades.utilidades import encontrar_vecinos_mas_cercanos_knn
 
 #Diccionarios Importados
-from utilidades import OPCIONES_SELECTBOX_FORMULARIO
-from utilidades import LABEL_MAPPING_TIPO_DE_JUEGO
-from utilidades import PRECIO_MAXIMO_MAP
-from utilidades import LABEL_MAPPING
+from utilidades.utilidades import OPCIONES_SELECTBOX_FORMULARIO
+from utilidades.utilidades import LABEL_MAPPING_TIPO_DE_JUEGO
+from utilidades.utilidades import PRECIO_MAXIMO_MAP
+from utilidades.utilidades import LABEL_MAPPING
 
 # Configuración de la página para ancho completo
 st.set_page_config(page_title="Formulario", layout="wide")
@@ -416,14 +416,62 @@ def recomendador_de_pala():
     except Exception as e:
        st.error(f"Error al generar el gráfico o procesar los datos: {str(e)}")
 
+st.write("1.DESCARGA DE DATA - FORMULARIO y PALAS")
+st.write("Descargando datos desde S3...")
+try:
+    descargar_generar_archivo_palas_s3()
+except Exception as e:
+    st.error(f"Error al descargar o generar archivos desde S3: {e}")
+    st.stop()
 
-# Llamar al método procesar_archivo_s3() al inicio de la aplicación
-st.write("Descargando datos de S3...")
-descargar_generar_archivo_palas_s3()
+st.write("2.PRE-PROCESAMIENTO DE DATOS DEL FORMULARIO")
+
 st.write("Aplicando Label Encoding - CSV Formulario")
-procesar_datos_formulario_csv()
-crear_dataframes_con_scores()
-procesar_scores_y_guardar()
+try:
+    procesar_datos_formulario_csv()
+except Exception as e:
+    st.error(f"Error al procesar datos del formulario: {e}")
+    st.stop()
+
+st.write("Generando DataFrames con Scores...")
+try:
+    crear_dataframes_con_scores()
+except Exception as e:
+    st.error(f"Error al crear DataFrames con scores: {e}")
+    st.stop()
+
+st.write("Procesando Scores y guardando resultados...")
+try:
+    procesar_scores_y_guardar()
+except Exception as e:
+    st.error(f"Error al procesar scores o guardar resultados: {e}")
+
+st.write("3.PRE-PROCESAMIENTO DE DATOS DE PALAS")
+st.write("Carga/Lectura/Tratamiento de Datos de Palas")
+try:
+    lectura_tratamiento_datos_palas()
+except Exception as e:
+    st.error(f"Error en la lectura del tratamiento de palas {e}")
+    st.stop()
+st.write("Labelizar Columnas de Palas")
+try:
+    labelizar_columnas()
+except Exception as e:
+    st.error(f"Error al labelizar las columnas del dataframe de palas {e}")
+    st.stop()
+st.write("Calcular scores de lesion y nivel de Palas")
+try:
+    calcular_scores()
+except Exception as e:
+    st.error(f"Error al labelizar las columnas del dataframe de palas {e}")
+    st.stop()
+st.write("Escalar Columnas de Palas")
+try:
+    escalar_columnas()
+except Exception as e:
+    st.error(f"Error al escalar columnas del dataframe de palas {e}")
+    st.stop()
+
 
 # Menú lateral moderno con streamlit-option-menu
 with st.sidebar:
