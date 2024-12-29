@@ -1,4 +1,7 @@
 import streamlit as st
+import importlib.util
+import subprocess
+import sys
 from sklearn.neighbors import NearestNeighbors
 
 
@@ -12,9 +15,6 @@ def descargar_generar_archivo_palas_s3():
 
     :return: None
     """
-    import importlib.util
-    import subprocess
-    import sys
 
     def check_library_installed(library_name):
         """
