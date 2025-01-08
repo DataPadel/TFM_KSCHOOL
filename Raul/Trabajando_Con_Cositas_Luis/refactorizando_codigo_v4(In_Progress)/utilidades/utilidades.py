@@ -304,9 +304,7 @@ def analizar_relacion_score(df_palas, palas_recomendadas):
     st.plotly_chart(fig)
 
 
-
-
-def encontrar_vecinos_mas_cercanos_knn(df_palas, x_random, y_random, z_random, considerar_precio, precio_maximo):
+def encontrar_vecinos_mas_cercanos_knn(df_palas, x_random, y_random, considerar_precio=False, precio_maximo=None):
     """
     Encuentra las 3 palas más cercanas según las características especificadas.
 
@@ -314,60 +312,47 @@ def encontrar_vecinos_mas_cercanos_knn(df_palas, x_random, y_random, z_random, c
         df_palas (DataFrame): DataFrame con los datos de las palas.
         x_random (float): Coordenada X del punto de referencia.
         y_random (float): Coordenada Y del punto de referencia.
-        z_random (float): Coordenada Z del punto de referencia.
         considerar_precio (bool): Si se debe considerar el precio en la búsqueda.
-        precio_maximo (float): Precio máximo a considerar.
+        precio_maximo (float): Precio máximo a considerar (si considerar_precio es True).
 
     Returns:
         DataFrame: DataFrame con las palas recomendadas.
     """
-    print(f"Entradas para KNN: x={x_random}, y={y_random}, z={z_random}, considerar_precio={considerar_precio}, precio_maximo={precio_maximo}")
     try:
-        # Agregar columna 'Score_Escalar_Lesion_Nivel'
+        # Calcular Score_Escalar_Lesion_Nivel para las palas
         df_palas['Score_Escalar_Lesion_Nivel'] = (
             (df_palas['score_lesion_ajustado']**2 + df_palas['score_nivel_ajustado']**2)**0.5
         )
 
-        # Seleccionar características para KNN
-        knn_features = ['score_lesion_ajustado', 'score_nivel_ajustado', 'Score_Escalar_Lesion_Nivel']
-        
-        # Imprimir el valor de cada uno de los elementos del array knn_features
-        print("Valores de knn_features:")
-        for feature in knn_features:
-            print(f"{feature}:")
-            print(df_palas[feature].values)
-            
-        
-        if considerar_precio:
-            knn_features.append('Precio')
+        # Filtrar por precio si es necesario
+        if considerar_precio and precio_maximo is not None:
             df_palas = df_palas[df_palas['Precio'] <= precio_maximo]
 
-        # Preprocesar datos (manejo de NaN)
-        df_palas = preprocesar_datos(df_palas, knn_features)
+        # Verificar si hay suficientes datos para KNN
+        if len(df_palas) < 3:
+            raise ValueError("No hay suficientes palas para realizar la recomendación con KNN.")
 
         # Configurar y entrenar el modelo KNN
+        knn_features = ['Score_Escalar_Lesion_Nivel']
         knn = NearestNeighbors(n_neighbors=3)
         knn.fit(df_palas[knn_features])
 
         # Crear el punto de referencia
-        reference_point = [[x_random, y_random, z_random] + ([precio_maximo] if considerar_precio else [])]
+        z_random = (x_random**2 + y_random**2)**0.5
+        reference_point = [[z_random]]
 
         # Encontrar los vecinos más cercanos
-        distances,indices = knn.kneighbors(reference_point)
+        distances, indices = knn.kneighbors(reference_point)
 
-        # Seleccionar las palas recomendadas sin sobrescribir el DataFrame original
+        # Seleccionar las palas recomendadas
         palas_recomendadas = df_palas.iloc[indices[0]].copy(deep=True)
-        
 
-        palas_recomendadas = mapear_valores(palas_recomendadas, LABEL_MAPPING_INVERTIDO)
-
-        # Ajustar tipos de datos si es necesario (ejemplo: convertir precios a formato monetario)
-        palas_recomendadas['Precio'] = palas_recomendadas['Precio'].apply(lambda x: f"${x:.2f}")
-
-        return palas_recomendadas[['Palas', 'Nivel de Juego', 'Tipo de Juego', 'Balance', 'Precio']]
+        return palas_recomendadas[['Palas', 'score_lesion_ajustado', 'score_nivel_ajustado', 'Score_Escalar_Lesion_Nivel', 'Precio']]
 
     except Exception as e:
         raise ValueError(f"Error en encontrar_vecinos_mas_cercanos_knn: {e}")
+
+
 
 #Diccionario para la division de las Palas por precio (Aplicable division al clickar checkbox)
 PRECIO_MAXIMO_MAP= {"Menos de 100": 100,"Entre 100 y 200 ": 200,"Mas de 200 ": float('inf')}

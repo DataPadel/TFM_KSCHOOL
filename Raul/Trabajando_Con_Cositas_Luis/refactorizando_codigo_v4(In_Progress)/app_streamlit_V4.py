@@ -16,6 +16,9 @@ from utilidades.graficos.graficos_palas import grafico_histograma_palas, diagram
 #Importar graficas de Formularios
 from utilidades.graficos.graficos_formularios import grafico_dispersion_formularios
 
+#Importar fraficos de Recomendador de Pala
+from utilidades.graficos.graficos_recomendador_de_pala import diagrama_palas_palas_recomendadas,diagrama_palas_palas_recomendadas_grafica
+
 #Algoritmo importado(KNN) y Visualizador de Gráficos
 from utilidades.utilidades import encontrar_vecinos_mas_cercanos_knn,analizar_relacion_score
 
@@ -509,7 +512,6 @@ def procesar_envio_formulario():
     guardar_csv(df_form_actualizado, 'formulario_combinaciones.csv')
 
 
-
 def recomendador_de_pala():
     st.title("Recomendador de Pala")
 
@@ -534,64 +536,68 @@ def recomendador_de_pala():
             (df_form['Score_Escalar_Lesion']**2 + df_form['Score_Escalar_Nivel']**2)**0.5
         )
 
-        # Evitar sobreescrituras creando copias de los DataFrames
-        df_form_copy = df_form.copy()
-        df_palas_copy = df_palas.copy()
+        # Mostrar detalles del registro seleccionado en forma tabular
+        st.subheader("Detalles del Registro Seleccionado")
+        detalles_registro_df = mostrar_detalles_registro_tabular(df_form, index)
+        st.dataframe(detalles_registro_df)
+
+        # Obtener el valor de "Rango de precio dispuesto a pagar" del registro seleccionado
+        rango_precio_seleccionado = detalles_registro_df.loc[
+            detalles_registro_df["Característica"] == "Rango de precio dispuesto a pagar", 
+            "Valor"
+        ].values[0].strip()  # Eliminar espacios adicionales
+
+        # Depuración: Imprimir el rango seleccionado
+        print(f"Rango de precio seleccionado: '{rango_precio_seleccionado}'")
+
+        # Determinar los rangos seleccionados automáticamente según el valor del formulario
+        rangos_seleccionados = []
+        if rango_precio_seleccionado == "Menos de 100":
+            rangos_seleccionados.append((0, 100))
+        elif rango_precio_seleccionado == "Entre 100 y 200":
+            rangos_seleccionados.append((100, 200))
+        elif rango_precio_seleccionado == "Mas de 200":
+            rangos_seleccionados.append((200, float('inf')))
+
+        if not rangos_seleccionados:
+            st.warning("Por favor, selecciona al menos un rango de precios.")
+            return
 
         # Obtener valores específicos del registro seleccionado
-        x_random = df_form_copy.iloc[index]['Score_Escalar_Lesion']
-        y_random = df_form_copy.iloc[index]['Score_Escalar_Nivel']
-        z_random = df_form_copy.iloc[index]['Score_Escalar_Lesion_Nivel']
+        x_random = df_form.iloc[index]['Score_Escalar_Lesion']
+        y_random = df_form.iloc[index]['Score_Escalar_Nivel']
 
-        # Depuración: Imprimir valores utilizados para recomendaciones
-        print(f"Índice seleccionado: {index}")
-        print(f"x_random: {x_random}, y_random: {y_random}, z_random: {z_random}")
+        # Iterar sobre los rangos seleccionados y generar recomendaciones por cada rango
+        for rango in rangos_seleccionados:
+            precio_maximo = rango[1]  # Máximo del rango actual
 
-        # Checkbox para seleccionar rangos de precios
-        st.subheader("Filtrar por Rango de Precio")
-        rango_25_75 = st.checkbox("25-75")
-        rango_75_150 = st.checkbox("75-150")
-        rango_150_200 = st.checkbox("150-200")
+            try:
+                # Llamar al método encontrar_vecinos_mas_cercanos_knn para cada rango
+                palas_recomendadas = encontrar_vecinos_mas_cercanos_knn(
+                    df_palas=df_palas,
+                    x_random=x_random,
+                    y_random=y_random,
+                    considerar_precio=True,
+                    precio_maximo=precio_maximo
+                )
 
-        # Determinar los rangos seleccionados
-        rangos_seleccionados = []
-        if rango_25_75:
-            rangos_seleccionados.append((25, 75))
-        if rango_75_150:
-            rangos_seleccionados.append((75, 150))
-        if rango_150_200:
-            rangos_seleccionados.append((150, 200))
+                if not palas_recomendadas.empty:
+                    st.subheader(f"Palas Recomendadas para el rango {rango[0]} - {rango[1]} Euros")
+                    st.dataframe(palas_recomendadas)
+                    
+                    # Mostrar gráfico relacionado con las recomendaciones
+                    diagrama_palas_palas_recomendadas(palas_recomendadas)
+                    
+                    diagrama_palas_palas_recomendadas_grafica(palas_recomendadas)
 
-        # Filtrar las palas por precio si se seleccionaron rangos
-        if rangos_seleccionados:
-            mask_precio = False
-            for rango in rangos_seleccionados:
-                mask_precio |= (df_palas_copy['Precio'] >= rango[0]) & (df_palas_copy['Precio'] <= rango[1])
-            df_palas_copy = df_palas_copy[mask_precio]
-
-            if df_palas_copy.empty:
-                st.warning("No hay palas disponibles en los rangos de precios seleccionados.")
-                return
-
-        # Llamar al método encontrar_vecinos_mas_cercanos_knn
-        palas_recomendadas = encontrar_vecinos_mas_cercanos_knn(
-            df_palas=df_palas_copy,
-            x_random=x_random,
-            y_random=y_random,
-            z_random=z_random,
-            considerar_precio=True,
-            precio_maximo=200  # Este valor ya no es relevante porque se filtra por rangos directamente.
-        )
-
-        # Mostrar las palas recomendadas en un DataFrame interactivo
-        st.subheader("Palas Recomendadas")
-        st.dataframe(palas_recomendadas)
+            except ValueError as knn_error:
+                if "No hay suficientes palas" in str(knn_error):
+                    st.warning(f"No hay suficientes palas disponibles en el rango {rango[0]} - {rango[1]} Euros.")
+                else:
+                    raise knn_error
 
     except Exception as e:
        st.error(f"Error al generar el gráfico o procesar los datos: {str(e)}")
-
-
-
 
 
 def graficas_palas():
