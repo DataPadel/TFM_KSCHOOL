@@ -20,36 +20,56 @@ def mostrar_mensaje(mensaje):
         print(mensaje)
         mensajes_mostrados.add(mensaje)
 
+def ejecutar_una_vez(func, estado_key):
+    """
+    Ejecuta una función solo si no ha sido ejecutada previamente en la sesión.
+
+    Args:
+        func (callable): La función a ejecutar.
+        estado_key (str): Clave en st.session_state para rastrear si la función ya fue ejecutada.
+    """
+    if not st.session_state.get(estado_key, False):
+        func()
+        st.session_state[estado_key] = True
+    else:
+        print(f"La función '{func.__name__}' ya fue ejecutada previamente.")
+
 def lectura_tratamiento_datos_palas():
     """
-    Lee un archivo CSV, realiza el tratamiento de las columnas y guarda el DataFrame en una variable global.
+    Lee un archivo CSV, realiza el tratamiento de las columnas y guarda el DataFrame en session_state.
     """
-    global df
     try:
-        # Ruta del archivo CSV
-        ruta_csv = r'C:\repositorio\TFM_KSCHOOL\Raul\Trabajando_Con_Cositas_Luis\refactorizando_codigo_v4(In_Progress)\PNpalas_DF_2_procesado.csv'
-        df = pd.read_csv(ruta_csv)
+        # Verificar si ya existe "df" en session_state
+        if "df" not in st.session_state or st.session_state["df"] is None:
+            # Ruta del archivo CSV
+            ruta_csv = r'C:\repositorio\TFM_KSCHOOL\Raul\Trabajando_Con_Cositas_Luis\refactorizando_codigo_v4(In_Progress)\PNpalas_DF_2_procesado.csv'
+            
+            # Leer el archivo CSV
+            df = pd.read_csv(ruta_csv)
 
-        # Eliminación de columnas no necesarias
-        columnas_a_eliminar = ['Producto', 'Acabado']
-        df = df.drop(columnas_a_eliminar, axis=1)
+            # Eliminación de columnas no necesarias
+            columnas_a_eliminar = ['Producto', 'Acabado']
+            df = df.drop(columnas_a_eliminar, axis=1)
 
-        # Transformaciones de columnas
-        df['Precio'] = df['Precio'].apply(limpiar_precio)
-        df['Balance'] = df['Balance'].apply(tratar_balance)
-        df['Nucleo'] = df['Nucleo'].apply(tratar_nucleo)
-        df['Cara'] = df['Cara'].apply(tratar_cara)
-        df['Dureza'] = df['Dureza'].apply(tratar_dureza)
-        df['Nivel de Juego'] = df['Nivel de Juego'].apply(tratar_nivel_juego)
-        df['Tipo de Juego'] = df['Tipo de Juego'].apply(tratar_tipo_juego)
-        df['Jugador'] = df['Jugador'].apply(tratar_jugador)
+            # Transformaciones de columnas
+            df['Precio'] = df['Precio'].apply(limpiar_precio)
+            df['Balance'] = df['Balance'].apply(tratar_balance)
+            df['Nucleo'] = df['Nucleo'].apply(tratar_nucleo)
+            df['Cara'] = df['Cara'].apply(tratar_cara)
+            df['Dureza'] = df['Dureza'].apply(tratar_dureza)
+            df['Nivel de Juego'] = df['Nivel de Juego'].apply(tratar_nivel_juego)
+            df['Tipo de Juego'] = df['Tipo de Juego'].apply(tratar_tipo_juego)
+            df['Jugador'] = df['Jugador'].apply(tratar_jugador)
 
-        # Guardar en session_state
-        st.session_state["df"] = df
-        
-        mostrar_mensaje("Carga de Palas/Tratamiento Datos Palas Realizado Correctamente")
+            # Guardar el DataFrame procesado en session_state
+            st.session_state["df"] = df
+
+            mostrar_mensaje("Carga de Palas/Tratamiento Datos Palas Realizado Correctamente")
+        else:
+            print("El DataFrame ya estaba inicializado en session_state.")
     except Exception as e:
         raise RuntimeError(f"Error al leer o procesar el archivo CSV: {e}")
+
 
 # Funciones auxiliares para transformar columnas
 def limpiar_precio(precio):
@@ -140,46 +160,61 @@ def tratar_jugador(jugador):
 def mostrar_mensaje(mensaje):
     """Muestra un mensaje en consola."""
     print(mensaje)
+    
+def ejecutar_una_vez(func, estado_key):
+    """
+    Ejecuta una función solo si no ha sido ejecutada previamente en la sesión.
 
-
+    Args:
+        func (callable): La función a ejecutar.
+        estado_key (str): Clave en st.session_state para rastrear si la función ya fue ejecutada.
+    """
+    if not st.session_state.get(estado_key, False):
+        func()
+        st.session_state[estado_key] = True
+    else:
+        print(f"La función '{func.__name__}' ya fue ejecutada previamente.")
+   
 def labelizar_columnas():
-
     """Labeliza las columnas del DataFrame según un mapeo especificado."""
     try:
-        
-        if st.session_state["df"] is None:
-            raise ValueError("El DataFrame no ha sido inicializado.")
+        # Validar si "df" está disponible en session_state
+        if "df" not in st.session_state or st.session_state["df"] is None:
+            raise ValueError("El DataFrame no ha sido inicializado en session_state.")
 
         # Crear una copia para evitar modificar el original
         df_labelizado = st.session_state["df"].copy()
+        
 
-        # Aplicar mapeo a las columnas según LABEL_MAPPING
         for columna in df_labelizado.columns:
             if columna in LABEL_MAPPING:
                 if "No data" not in LABEL_MAPPING[columna]:
                     LABEL_MAPPING[columna]["No data"] = 0
-                df_labelizado[columna] = df_labelizado[columna].map(LABEL_MAPPING[columna])
-                # Guardar en session_state
-                st.session_state["df_labelizado"] = df_labelizado
-                mostrar_mensaje("Labelizacion de Columnas de Palas Realizada Correctamente")
+
+                # Aplicar el mapeo y manejar valores faltantes (NaN)
+                df_labelizado[columna] = df_labelizado[columna].map(
+                    LABEL_MAPPING[columna]
+                ).fillna(0)
+
+        # Guardar el DataFrame procesado en session_state
+        st.session_state["df_labelizado"] = df_labelizado
+        
+
+        mostrar_mensaje("Labelización de Columnas de Palas Realizada Correctamente")
     except Exception as e:
         raise RuntimeError(f"Error al labelizar las columnas: {e}")
 
 def calcular_scores():
-
     """Calcula los scores de lesión y nivel para cada fila."""
     try:
-        if st.session_state["df_labelizado"] is None:
+        if "df_labelizado" not in st.session_state or st.session_state["df_labelizado"] is None:
             raise ValueError("El DataFrame labelizado no ha sido inicializado.")
 
-        # Obtener el DataFrame desde session_state
         df_labelizado = st.session_state["df_labelizado"]
-        
-        # Inicializar columnas de score en 0
+
         df_labelizado["score_lesion"] = 0
         df_labelizado["score_nivel"] = 0
 
-        # Calcular scores basados en los mapeos y pesos
         for columna in df_labelizado.columns:
             if columna in PESO_LESION:
                 df_labelizado["score_lesion"] += (
@@ -189,63 +224,47 @@ def calcular_scores():
                 df_labelizado["score_nivel"] += (
                     df_labelizado[columna].map(SCORE_NIVEL.get(columna, {})) * PESO_NIVEL[columna]
                 )
-                # Guardar en session_state
-                st.session_state["df_labelizado"] = df_labelizado
-                mostrar_mensaje("Calculo de Scores y de Nivel Realizado Correctamente")
-        print("Mostrar el dataframe labelizado en palas",df_labelizado)
+
+        df_labelizado.fillna(0, inplace=True)
+        st.session_state["df_labelizado"] = df_labelizado
+
+        mostrar_mensaje("Cálculo de Scores y de Nivel Realizado Correctamente")
+
     except Exception as e:
         raise RuntimeError(f"Error al calcular los scores: {e}")
 
 def escalar_columnas():
     """Escala las columnas seleccionadas usando MinMaxScaler."""
     try:
-        if st.session_state["df_labelizado"] is None:
+        if "df_labelizado" not in st.session_state or st.session_state["df_labelizado"] is None:
             raise ValueError("El DataFrame labelizado no ha sido inicializado.")
 
         scaler = MinMaxScaler()
-        
-        # Escalar columnas específicas
         columnas_a_escalar = ["score_lesion", "score_nivel"]
-        
-        # Crear una copia escalada del DataFrame
+
         df_scaled = st.session_state["df_labelizado"].copy()
-        
-        # Aplicar escalado
         df_scaled[columnas_a_escalar] = scaler.fit_transform(df_scaled[columnas_a_escalar])
 
-        # Guardar en session_state
         st.session_state["df_scaled"] = df_scaled
+        
+        print("df_scaled" , df_scaled)
 
         mostrar_mensaje("Columnas Escaladas Correctamente")
+
     except Exception as e:
         raise RuntimeError(f"Error al escalar las columnas: {e}")
-
+    
+    
 
 def regresion_a_la_media_palas():
-    """
-    Aplica una regresión a la media a las columnas específicas del DataFrame almacenado en `st.session_state["df_scaled"]`.
-    Guarda los resultados en un archivo CSV y actualiza el DataFrame en `st.session_state`.
-    """
+    """Aplica una regresión a la media a las columnas específicas."""
     try:
-        # Verificar que el DataFrame escalado esté inicializado en session_state
         if "df_scaled" not in st.session_state or st.session_state["df_scaled"] is None:
-            raise ValueError("El DataFrame 'df_scaled' no ha sido inicializado. Asegúrate de completar el preprocesamiento primero.")
+            raise ValueError("El DataFrame 'df_scaled' no ha sido inicializado.")
 
-        # Obtener el DataFrame desde session_state
         df_scaled = st.session_state["df_scaled"]
 
-        # Definir la función de ajuste
         def ajustar_valor(valor, es_score_nivel):
-            """
-            Ajusta un valor según las reglas de regresión a la media.
-            
-            Parámetros:
-            - valor: valor numérico a ajustar.
-            - es_score_nivel: booleano que indica si se aplican las reglas específicas para `score_nivel`.
-            
-            Retorna:
-            - Valor ajustado.
-            """
             if es_score_nivel:
                 if 0.0 <= valor <= 0.2:
                     return 0.2
@@ -271,21 +290,17 @@ def regresion_a_la_media_palas():
                 else:
                     return valor
 
-        # Aplicar ajustes a las columnas correspondientes
         df_scaled['score_lesion_ajustado'] = df_scaled['score_lesion'].apply(lambda x: ajustar_valor(x, es_score_nivel=False))
         df_scaled['score_nivel_ajustado'] = df_scaled['score_nivel'].apply(lambda x: ajustar_valor(x, es_score_nivel=True))
-
-        # Guardar los resultados en un archivo CSV
+        
         nombre_archivo = 'df_scaled_palas_3.0.csv'
         df_scaled.to_csv(nombre_archivo, index=False)
-        print(f"Archivo guardado como '{nombre_archivo}'")
-
-        # Actualizar el DataFrame ajustado en session_state
+        
         st.session_state["df_scaled"] = df_scaled
-
-        print("Este es el dataframe de palas escalado y ajustado:", df_scaled)
 
     except Exception as e:
         raise RuntimeError(f"Error al aplicar la regresión a la media: {e}")
+
+
 
 

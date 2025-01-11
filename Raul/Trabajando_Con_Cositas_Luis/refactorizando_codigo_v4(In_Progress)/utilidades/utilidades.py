@@ -2,7 +2,11 @@ import streamlit as st
 import importlib.util
 import subprocess
 import sys
+import plotly.express as px
+import matplotlib.pyplot as plt
+import seaborn as sns
 from sklearn.neighbors import NearestNeighbors
+from sklearn.impute import SimpleImputer
 
 
 #DESCARGA, CONVERSION Y GENERACION DE ARCHIVOS S3
@@ -110,6 +114,18 @@ LABEL_MAPPING = {
 }
 
 
+LABEL_MAPPING_INVERTIDO = {
+    "Balance": {0: "No data", 1: "bajo", 2: "medio", 3: "alto"},
+    "Nucleo": {0: "No data", 1: "foam", 2: "medium eva", 3: "hard eva", 4: "soft eva"},
+    "Cara": {0: "No data", 1: "fibra de vidrio", 2: "mix", 3: "fibra de carbono"},
+    "Dureza": {0: "No data", 1: "blanda", 2: "media", 3: "dura"},
+    "Nivel de Juego": {0: "No data", 1: "principiante", 2: "avanzado", 3: "pro"},
+    "Forma": {0: "No data", 1: "redonda", 2: "lágrima", 3: "diamante"},
+    "Superficie": {0: "No data", 1: "lisa", 2: "rugosa"},
+    "Tipo de Juego": {0: "No data", 1: "control", 2: "polivalente", 3: "potencia"},
+}
+
+
 # Diccionario de mapeo para convertir valores numéricos a etiquetas descriptivas
 
 LABEL_MAPPING_TIPO_DE_JUEGO = {0: "No Related", 1: "Control", 2: "Polivalente", 3: "Potencia"}
@@ -138,30 +154,208 @@ PRECIO_MAXIMO_MAP= {"Menos de 100": 100,"Entre 100 y 200 ": 200,"Mas de 200 ": f
 
 #ALGORITMO KNN
 
-# Encontrar vecinos más cercanos con KNN considerando el precio si está seleccionado
-def encontrar_vecinos_mas_cercanos_knn(df_palas, x_random, y_random, z_random, considerar_precio, precio_maximo):
-    knn_features = ['score_lesion', 'score_nivel', 'Score_Escalar']
-    
-    if considerar_precio:
-        knn_features.append('Precio')
-        df_palas = df_palas[df_palas['Precio'] <= precio_maximo]
-    
-    knn = NearestNeighbors(n_neighbors=3)
-    knn.fit(df_palas[knn_features])
-    
-    reference_point = [[x_random, y_random, z_random] + ([precio_maximo] if considerar_precio else [])]
-    
-    distances, indices = knn.kneighbors(reference_point)
-    
-    palas_recomendadas = df_palas.iloc[indices[0]]
-    
-    # Mapear valores numéricos a etiquetas descriptivas
-    palas_recomendadas["Nivel de Juego"] = palas_recomendadas["Nivel de Juego"].map(LABEL_MAPPING["Nivel de Juego"])
-    palas_recomendadas["Tipo de Juego"] = palas_recomendadas["Tipo de Juego"].map(LABEL_MAPPING["Tipo de Juego"])
-    palas_recomendadas["Balance"] = palas_recomendadas["Balance"].map(LABEL_MAPPING["Balance"])
-    
-    return palas_recomendadas[['Palas', 'Nivel de Juego', 'Tipo de Juego', 'Balance', 'Precio']]
+def preprocesar_datos(df_palas, knn_features):
+    """
+    Preprocesa el dataframe imputando valores faltantes y asegurando compatibilidad de tipos.
+    """
+    # Manejar valores NaN imputando con la media
+    imputer = SimpleImputer(strategy='mean')
+    df_palas[knn_features] = imputer.fit_transform(df_palas[knn_features])
+    return df_palas
 
+def agregar_score_escalar(df_palas):
+    """
+    Calcula y agrega la columna 'Score_Escalar_Lesion_Nivel' al dataframe.
+    """
+    df_palas['Score_Escalar_Lesion_Nivel'] = (
+        (df_palas['score_lesion_ajustado']**2 + df_palas['score_nivel_ajustado']**2)**0.5
+    )
+    return df_palas
+
+def mapear_valores(palas_recomendadas, label_mapping):
+    """
+    Mapea valores numéricos a etiquetas descriptivas utilizando un diccionario de mapeo.
+    """
+    for col in label_mapping.keys():
+        if col in palas_recomendadas.columns:
+            palas_recomendadas[col] = palas_recomendadas[col].fillna(0).astype(int)
+            palas_recomendadas[col] = palas_recomendadas[col].map(label_mapping[col])
+    return palas_recomendadas
+
+def ajustar_tipos(palas_recomendadas):
+    """
+    Asegura que todas las columnas tengan tipos de datos compatibles.
+    """
+    for col in palas_recomendadas.columns:
+        if palas_recomendadas[col].dtype == 'object':
+            palas_recomendadas[col] = palas_recomendadas[col].astype(str)
+        elif palas_recomendadas[col].dtype == 'float64':
+            palas_recomendadas[col] = palas_recomendadas[col].astype(float)
+        elif palas_recomendadas[col].dtype == 'int64':
+            palas_recomendadas[col] = palas_recomendadas[col].astype(int)
+    return palas_recomendadas
+
+
+def mapear_valores(df, label_mapping):
+    """
+    Mapea valores numéricos a etiquetas descriptivas según un diccionario de mapeo.
+
+    Args:
+        df (DataFrame): DataFrame con los datos a mapear.
+        label_mapping (dict): Diccionario con el mapeo de valores.
+
+    Returns:
+        DataFrame: DataFrame con los valores mapeados.
+    """
+    for column, mapping in label_mapping.items():
+        if column in df.columns:
+            df[column] = df[column].map(mapping)
+    return df
+
+# Función para analizar la relación entre Score y palas recomendadas
+def analizar_relacion_score(df_palas, palas_recomendadas):
+    st.subheader("Pala Recomendada Evitar Lesión (Tipo de Juego)")
+
+    # Depuración: Imprimir columnas disponibles
+    print("Columnas disponibles en df_palas:", df_palas.columns)
+    print("Primeras filas de df_palas:")
+    print(df_palas.head())
+
+    print("Columnas disponibles en palas_recomendadas:", palas_recomendadas.columns)
+    print("Primeras filas de palas_recomendadas:")
+    print(palas_recomendadas.head())
+
+    # Validar columnas necesarias en df_palas
+    required_columns = ['score_lesion_ajustado', 'score_nivel_ajustado', 'Tipo de Juego', 'Score_Escalar_Lesion_Nivel']
+    for col in required_columns:
+        if col not in df_palas.columns:
+            raise ValueError(f"La columna '{col}' no está presente en el DataFrame df_palas.")
+
+    # Asegurar que palas_recomendadas tenga las columnas necesarias
+    if not palas_recomendadas.empty:
+        if 'Score_Escalar_Lesion_Nivel' not in palas_recomendadas.columns:
+            print("Copiando columnas faltantes desde df_palas a palas_recomendadas.")
+            palas_recomendadas = palas_recomendadas.merge(
+                df_palas[['Score_Escalar_Lesion_Nivel']],
+                left_index=True,
+                right_index=True,
+                how='left'
+            )
+
+    # Mapear los valores numéricos de "Tipo de Juego" a etiquetas descriptivas
+    if "Tipo de Juego" in df_palas.columns:
+        df_palas["Tipo de Juego Descriptivo"] = df_palas["Tipo de Juego"].map(LABEL_MAPPING_TIPO_DE_JUEGO)
+    else:
+        st.error("La columna 'Tipo de Juego' no existe en el DataFrame.")
+        return
+
+    # Crear checkboxes para seleccionar qué tipos de juego mostrar
+    categorias_unicas = df_palas["Tipo de Juego Descriptivo"].unique()
+    
+    col1, col2, col3, col4 = st.columns(len(categorias_unicas))
+    seleccionados = {}
+    
+    for i, categoria in enumerate(categorias_unicas):
+        with [col1, col2, col3, col4][i]:
+            seleccionados[categoria] = st.checkbox(categoria, value=(categoria == "Polivalente"))
+    
+    categorias_seleccionadas = [categoria for categoria, mostrar in seleccionados.items() if mostrar]
+    df_filtrado = df_palas[df_palas["Tipo de Juego Descriptivo"].isin(categorias_seleccionadas)]
+    
+    if df_filtrado.empty:
+        st.warning("No hay datos para las categorías seleccionadas.")
+        return
+
+    print("Primeras filas del DataFrame filtrado:")
+    print(df_filtrado.head())
+
+    # Crear gráfico interactivo en 2D con plotly (scatter plot)
+    fig = px.scatter(
+        df_filtrado,
+        x="score_lesion_ajustado",
+        y="score_nivel_ajustado",
+        color="Tipo de Juego Descriptivo",
+        hover_data=["Palas", "Precio", "Balance"],
+        title="Pala Recomendada Evitar Lesión (Tipo de Juego)"
+    )
+    
+    # Filtrar las palas recomendadas por Score_Escalar_Lesion_Nivel
+    if not palas_recomendadas.empty:
+        threshold = st.slider("Umbral para Score_Escalar_Lesion_Nivel", min_value=0.0, max_value=1.0, value=0.5)
+        recomendadas_filtradas = palas_recomendadas[palas_recomendadas['Score_Escalar_Lesion_Nivel'] >= threshold]
+
+        # Añadir puntos rojos para las palas recomendadas filtradas
+        fig.add_scatter(
+            x=recomendadas_filtradas["score_lesion_ajustado"],
+            y=recomendadas_filtradas["score_nivel_ajustado"],
+            mode='markers',
+            marker=dict(color='red', size=12, symbol='circle'),
+            name='Palas Recomendadas'
+        )
+    
+    # Ajustar diseño del gráfico
+    fig.update_layout(
+        xaxis_title="Lesión (%)",
+        yaxis_title="Nivel (%)",
+        margin=dict(l=40, r=40, t=40, b=40),  # Márgenes ajustados
+        height=600  # Altura del gráfico
+    )
+    
+    st.plotly_chart(fig)
+
+
+def encontrar_vecinos_mas_cercanos_knn(df_palas, x_random, y_random, considerar_precio=False, precio_maximo=None):
+    """
+    Encuentra las 3 palas más cercanas según las características especificadas.
+
+    Args:
+        df_palas (DataFrame): DataFrame con los datos de las palas.
+        x_random (float): Coordenada X del punto de referencia.
+        y_random (float): Coordenada Y del punto de referencia.
+        considerar_precio (bool): Si se debe considerar el precio en la búsqueda.
+        precio_maximo (float): Precio máximo a considerar (si considerar_precio es True).
+
+    Returns:
+        DataFrame: DataFrame con las palas recomendadas.
+    """
+    try:
+        # Calcular Score_Escalar_Lesion_Nivel para las palas
+        df_palas['Score_Escalar_Lesion_Nivel'] = (
+            (df_palas['score_lesion_ajustado']**2 + df_palas['score_nivel_ajustado']**2)**0.5
+        )
+
+        # Filtrar por precio si es necesario
+        if considerar_precio and precio_maximo is not None:
+            df_palas = df_palas[df_palas['Precio'] <= precio_maximo]
+
+        # Verificar si hay suficientes datos para KNN
+        if len(df_palas) < 3:
+            raise ValueError("No hay suficientes palas para realizar la recomendación con KNN.")
+
+        # Configurar y entrenar el modelo KNN
+        knn_features = ['Score_Escalar_Lesion_Nivel']
+        knn = NearestNeighbors(n_neighbors=3)
+        knn.fit(df_palas[knn_features])
+
+        # Crear el punto de referencia
+        z_random = (x_random**2 + y_random**2)**0.5
+        reference_point = [[z_random]]
+
+        # Encontrar los vecinos más cercanos
+        distances, indices = knn.kneighbors(reference_point)
+
+        # Seleccionar las palas recomendadas
+        palas_recomendadas = df_palas.iloc[indices[0]].copy(deep=True)
+
+        return palas_recomendadas[['Palas', 'score_lesion_ajustado', 'score_nivel_ajustado', 'Score_Escalar_Lesion_Nivel', 'Precio']]
+
+    except Exception as e:
+        raise ValueError(f"Error en encontrar_vecinos_mas_cercanos_knn: {e}")
+
+
+
+#Diccionario para la division de las Palas por precio (Aplicable division al clickar checkbox)
+PRECIO_MAXIMO_MAP= {"Menos de 100": 100,"Entre 100 y 200 ": 200,"Mas de 200 ": float('inf')}
 
 #PONDERACIONES
 
@@ -233,14 +427,14 @@ PESO_NIVEL = {"Balance": 1.5,"Nucleo": 1.2,"Cara": 1.0,"Dureza": 1.2,"Nivel de J
 """
 
 SCORE_LESION = {
-    "Balance": {0: 0, 1: 1, 2: 2, 3: 3},
-    "Nucleo": {0: 0, 1: 1, 2: 2, 3: 3, 4: 4},
-    "Cara": {0: 0, 1: 1, 2: 2, 3: 3},
-    "Dureza": {0: 0, 1: 1, 2: 2, 3: 3},
-    "Nivel de Juego": {0: 0, 1: 1, 2: 2, 3: 3},
-    "Forma": {0: 0, 1: 1, 2: 2, 3: 3},
-    "Superficie": {0: 0, 1: 1, 2: 2},
-    "Tipo de Juego": {0: 0, 1: 1, 2: 2, 3: 3},
+    "Balance": {0: 0, 1: 0 , 2: 0.25, 3: 0.5},
+    "Nucleo": {0: 0, 1: 0, 2: 0.5, 3: 1, 4: 0.25},
+    "Cara": {0: 0, 1: 0, 2: 0.25, 3: 0.5},
+    "Dureza": {0: 0, 1: 0, 2: 0.5, 3: 0.75},
+    "Nivel de Juego": {0: 0, 1: 0, 2: 0, 3: 0},
+    "Forma": {0: 0, 1: 0, 2: 0.25, 3: 0.5},
+    "Superficie": {0: 0, 1: 0, 2: 0},
+    "Tipo de Juego": {0: 0, 1: 0, 2: 0.25, 3: 0.5},
 }
 
 """
@@ -249,13 +443,13 @@ SCORE_LESION = {
 """
 
 SCORE_NIVEL = {
-    "Balance": {0: 0, 1: 1, 2: 3, 3: 5},
-    "Nucleo": {0: 0, 1: 2, 2: 4, 3: 6, 4: 8},
-    "Cara": {0: 0, 1: 2, 2: 4, 3: 6},
-    "Dureza": {0: 0, 1: 2, 2: 4, 3: 6},
-    "Nivel de Juego": {0: 0, 1: 1, 2: 3, 3: 5},
-    "Forma": {0: 0, 1: 2, 2: 4, 3: 6},
-    "Superficie": {0: 0, 1: 2, 2: 4},
-    "Tipo de Juego": {0: 0, 1: 2, 2: 4, 3: 6},
+    "Balance": {0: 0, 1: 0 , 2: 0.25, 3: 0.5},
+    "Nucleo": {0: 0, 1: 0, 2: 0, 3: 0 , 4: 0},
+    "Cara": {0: 0, 1: 0, 2: 0, 3: 0},
+    "Dureza": {0: 0, 1: 0, 2: 0.5, 3: 0.75},
+    "Nivel de Juego": {0: 0, 1: 0, 2: 0.5, 3: 0.75},
+    "Forma": {0: 0, 1: 0, 2: 0, 3: 0.25},
+    "Superficie": {0: 0, 1: 0, 2: 0.25},
+    "Tipo de Juego": {0: 0, 1: 0, 2: 0.10, 3: 0.30},
 }
 
