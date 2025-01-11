@@ -8,7 +8,7 @@ import seaborn as sns
 #Import archivos de utilidades : utilidades y tratamiento_de_datos_formulario
 from utilidades.utilidades import  descargar_generar_archivo_palas_s3
 from utilidades.tratamiento_de_datos.tratamiento_de_datos_formulario import procesar_datos_formulario_csv,crear_dataframes_con_scores,procesar_scores_y_guardar,regresion_a_la_media_formulario
-from utilidades.tratamiento_de_datos.tratamiento_de_datos_palas import lectura_tratamiento_datos_palas, labelizar_columnas, calcular_scores, escalar_columnas, regresion_a_la_media_palas
+from utilidades.tratamiento_de_datos.tratamiento_de_datos_palas import lectura_tratamiento_datos_palas, labelizar_columnas, calcular_scores, escalar_columnas, regresion_a_la_media_palas,ejecutar_una_vez
 
 #Import graficas de Palas
 from utilidades.graficos.graficos_palas import grafico_histograma_palas, diagrama_dispersion_palas,diagrama_3d_palas
@@ -16,13 +16,15 @@ from utilidades.graficos.graficos_palas import grafico_histograma_palas, diagram
 #Importar graficas de Formularios
 from utilidades.graficos.graficos_formularios import grafico_dispersion_formularios
 
-#Algoritmo importado(KNN)
-from utilidades.utilidades import encontrar_vecinos_mas_cercanos_knn
+#Importar fraficos de Recomendador de Pala
+from utilidades.graficos.graficos_recomendador_de_pala import diagrama_palas_palas_recomendadas,diagrama_palas_palas_recomendadas_grafica
+
+#Algoritmo importado(KNN) y Visualizador de Gráficos
+from utilidades.utilidades import encontrar_vecinos_mas_cercanos_knn,analizar_relacion_score
 
 #Diccionarios Importados
 from utilidades.utilidades import OPCIONES_SELECTBOX_FORMULARIO
 from utilidades.utilidades import LABEL_MAPPING_TIPO_DE_JUEGO
-from utilidades.utilidades import PRECIO_MAXIMO_MAP
 from utilidades.utilidades import LABEL_MAPPING
 
 # Configuración de la página para ancho completo
@@ -37,42 +39,25 @@ if "datos_procesados" not in st.session_state:
 
 
 # Función para manejar el preprocesamiento inicial
+
 def preprocesar_datos_iniciales():
-    if not st.session_state["datos_procesados"]:
-        st.write("1.DESCARGA DE DATA - FORMULARIO y PALAS")
-        st.write("Descargando datos desde S3...")
+    """Preprocesa los datos iniciales solo una vez."""
+    if not st.session_state.get("datos_procesados", False):
         try:
-            descargar_generar_archivo_palas_s3()
-        except Exception as e:
-            st.error(f"Error al descargar o generar archivos desde S3: {e}")
-            st.stop()
+            # Paso 1: Lectura y tratamiento de datos
+            ejecutar_una_vez(lectura_tratamiento_datos_palas, "datos_leidos")
 
-        st.write("2.PRE-PROCESAMIENTO DE DATOS DEL FORMULARIO")
-        try:
-            procesar_datos_formulario_csv()
-            crear_dataframes_con_scores()
-            procesar_scores_y_guardar()
-            regresion_a_la_media_formulario()
-        except Exception as e:
-            st.error(f"Error en el preprocesamiento del formulario: {e}")
-            st.stop()
+            # Paso 2: Procesamiento adicional (labelización, cálculos, etc.)
+            ejecutar_una_vez(labelizar_columnas, "labelizacion_realizada")
+            ejecutar_una_vez(calcular_scores, "scores_calculados")
+            ejecutar_una_vez(escalar_columnas, "columnas_escaladas")
+            ejecutar_una_vez(regresion_a_la_media_palas, "regresion_aplicada")
 
-        st.write("3.PRE-PROCESAMIENTO DE DATOS DE PALAS")
-        try:
-            lectura_tratamiento_datos_palas()
-            labelizar_columnas()
-            calcular_scores()
-            escalar_columnas()
-            regresion_a_la_media_palas()
+            # Marcar como procesado
+            st.session_state["datos_procesados"] = True
 
         except Exception as e:
-            st.error(f"Error en el preprocesamiento de palas: {e}")
-            st.stop()
-
-        # Marcar que los datos han sido procesados
-        st.session_state["datos_procesados"] = True
-    else:
-        st.info("Los datos ya han sido procesados previamente.")
+            st.error(f"Error durante el preprocesamiento: {e}")
 
 # Llamar a la función de preprocesamiento inicial solo una vez
 preprocesar_datos_iniciales()
@@ -292,60 +277,6 @@ def graficar_calor_caracteristicas(palas_recomendadas):
 
 
 # Grafico - Pala Recomendada Evitar Lesión (Tipo de Juego)
-
-# Función para analizar la relación entre Score y palas recomendadas
-def analizar_relacion_score(df_palas):
-    st.subheader("Pala Recomendada Evitar Lesión (Tipo de Juego)")
-    
-    # Mapear los valores numéricos de "Tipo de Juego" a etiquetas descriptivas
-    if "Tipo de Juego" in df_palas.columns:
-        df_palas["Tipo de Juego Descriptivo"] = df_palas["Tipo de Juego"].map(LABEL_MAPPING_TIPO_DE_JUEGO)
-    else:
-        st.error("La columna 'Tipo de Juego' no existe en el DataFrame.")
-        return
-    
-    # Verificar si hay datos en df_palas
-    if df_palas.empty:
-        st.error("El DataFrame 'df_palas' está vacío.")
-        return
-    
-    # Crear checkboxes para seleccionar qué tipos de juego mostrar
-    categorias_unicas = df_palas["Tipo de Juego Descriptivo"].unique()
-    
-    col1, col2, col3, col4 = st.columns(len(categorias_unicas))
-    seleccionados = {}
-    
-    for i, categoria in enumerate(categorias_unicas):
-        with [col1, col2, col3, col4][i]:
-            seleccionados[categoria] = st.checkbox(categoria, value=(categoria == "Polivalente"))
-    
-    categorias_seleccionadas = [categoria for categoria, mostrar in seleccionados.items() if mostrar]
-    df_filtrado = df_palas[df_palas["Tipo de Juego Descriptivo"].isin(categorias_seleccionadas)]
-    
-    if df_filtrado.empty:
-        st.warning("No hay datos para las categorías seleccionadas.")
-        return
-    
-    # Crear gráfico interactivo en 2D con plotly (scatter plot)
-    fig = px.scatter(
-        df_filtrado,
-        x="score_lesion",
-        y="score_nivel",
-        color="Tipo de Juego Descriptivo",
-        size="Score_Escalar",
-        hover_data=["Palas", "Precio", "Balance"],
-        title="Pala Recomendada Evitar Lesión (Tipo de Juego)"
-    )
-    
-    # Ajustar diseño del gráfico
-    fig.update_layout(
-        xaxis_title="Lesión (%)",
-        yaxis_title="Nivel (%)",
-        margin=dict(l=40, r=40, t=40, b=40),  # Márgenes ajustados
-        height=600  # Altura del gráfico
-    )
-    
-    st.plotly_chart(fig)
 
 def graficar_distribucion_caracteristicas(palas_recomendadas):
     fig_barra = px.bar(
@@ -581,73 +512,93 @@ def procesar_envio_formulario():
     guardar_csv(df_form_actualizado, 'formulario_combinaciones.csv')
 
 
-
 def recomendador_de_pala():
     st.title("Recomendador de Pala")
-    
+
     try:
         # Obtener el DataFrame actualizado desde el estado global
         df_form = obtener_dataframe_actualizado()
         _, df_palas = cargar_dataframes()
-        
+
         # Renombrar columnas del DataFrame formulario
         df_form = renombrar_columnas(df_form)
-        
+
         # Slider para seleccionar índice del registro en el formulario
         index = st.slider("Índice del Registro Formulario", min_value=0, max_value=len(df_form) - 1, step=1)
-        
+
+        # Validar índice seleccionado
+        if index < 0 or index >= len(df_form):
+            st.error("El índice seleccionado está fuera de rango.")
+            return
+
+        # Crear nueva columna 'Score_Escalar_Lesion_Nivel' basada en la intersección geométrica
+        df_form['Score_Escalar_Lesion_Nivel'] = (
+            (df_form['Score_Escalar_Lesion']**2 + df_form['Score_Escalar_Nivel']**2)**0.5
+        )
+
         # Mostrar detalles del registro seleccionado en forma tabular
-        detalles_registro_df = mostrar_detalles_registro_tabular(df_form, index)
-        
         st.subheader("Detalles del Registro Seleccionado")
+        detalles_registro_df = mostrar_detalles_registro_tabular(df_form, index)
         st.dataframe(detalles_registro_df)
 
-        # Obtener valores del registro seleccionado en el formulario
-        score_escalar = df_form.iloc[index]['Score_Escalar']
-        
-        # Checkbox para considerar el precio
-        considerar_precio = st.checkbox("Considerar Precio Dispuesto A Pagar")
-        
-        # Determinar el rango de precio máximo según la selección del usuario
+        # Obtener el valor de "Rango de precio dispuesto a pagar" del registro seleccionado
         rango_precio_seleccionado = detalles_registro_df.loc[
             detalles_registro_df["Característica"] == "Rango de precio dispuesto a pagar", 
             "Valor"
-        ].values[0]
-        
+        ].values[0].strip()  # Eliminar espacios adicionales
 
-        # Verificar si el valor está en el mapa antes de usarlo
-        if rango_precio_seleccionado in PRECIO_MAXIMO_MAP:
-           precio_maximo = PRECIO_MAXIMO_MAP[rango_precio_seleccionado]
-        else:
-           st.error(f"Rango de precio '{rango_precio_seleccionado}' no reconocido.")
-           return
-        
-        # Encontrar vecinos más cercanos con KNN (palas recomendadas)
-        x_random = df_palas['score_lesion'].mean()
-        y_random = df_palas['score_nivel'].mean()
-        
-        palas_recomendadas_df = encontrar_vecinos_mas_cercanos_knn(
-            df_palas,
-            x_random=x_random,
-            y_random=y_random,
-            z_random=score_escalar,
-            considerar_precio=considerar_precio,
-            precio_maximo=precio_maximo
-        )
-        
-        st.subheader("Palas Recomendadas")
-        st.dataframe(palas_recomendadas_df)
+        # Depuración: Imprimir el rango seleccionado
+        print(f"Rango de precio seleccionado: '{rango_precio_seleccionado}'")
 
-        graficar_distribucion_caracteristicas(palas_recomendadas_df)
+        # Determinar los rangos seleccionados automáticamente según el valor del formulario
+        rangos_seleccionados = []
+        if rango_precio_seleccionado == "Menos de 100":
+            rangos_seleccionados.append((0, 100))
+        elif rango_precio_seleccionado == "Entre 100 y 200":
+            rangos_seleccionados.append((100, 200))
+        elif rango_precio_seleccionado == "Mas de 200":
+            rangos_seleccionados.append((200, float('inf')))
 
-        # Graficar el gráfico de calor
-        graficar_calor_caracteristicas(palas_recomendadas_df)
+        if not rangos_seleccionados:
+            st.warning("Por favor, selecciona al menos un rango de precios.")
+            return
 
-        # Llamar a la función para analizar la relación entre Score y palas recomendadas
-        analizar_relacion_score(df_palas)
+        # Obtener valores específicos del registro seleccionado
+        x_random = df_form.iloc[index]['Score_Escalar_Lesion']
+        y_random = df_form.iloc[index]['Score_Escalar_Nivel']
+
+        # Iterar sobre los rangos seleccionados y generar recomendaciones por cada rango
+        for rango in rangos_seleccionados:
+            precio_maximo = rango[1]  # Máximo del rango actual
+
+            try:
+                # Llamar al método encontrar_vecinos_mas_cercanos_knn para cada rango
+                palas_recomendadas = encontrar_vecinos_mas_cercanos_knn(
+                    df_palas=df_palas,
+                    x_random=x_random,
+                    y_random=y_random,
+                    considerar_precio=True,
+                    precio_maximo=precio_maximo
+                )
+
+                if not palas_recomendadas.empty:
+                    st.subheader(f"Palas Recomendadas para el rango {rango[0]} - {rango[1]} Euros")
+                    st.dataframe(palas_recomendadas)
+                    
+                    # Mostrar gráfico relacionado con las recomendaciones
+                    diagrama_palas_palas_recomendadas(palas_recomendadas)
+                    
+                    diagrama_palas_palas_recomendadas_grafica(palas_recomendadas)
+
+            except ValueError as knn_error:
+                if "No hay suficientes palas" in str(knn_error):
+                    st.warning(f"No hay suficientes palas disponibles en el rango {rango[0]} - {rango[1]} Euros.")
+                else:
+                    raise knn_error
 
     except Exception as e:
        st.error(f"Error al generar el gráfico o procesar los datos: {str(e)}")
+
 
 def graficas_palas():
     st.title("Graficas de Palas")
