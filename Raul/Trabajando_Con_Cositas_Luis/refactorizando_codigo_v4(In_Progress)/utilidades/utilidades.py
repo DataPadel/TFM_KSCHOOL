@@ -1,10 +1,8 @@
+import sys
+import subprocess
 import streamlit as st
 import importlib.util
-import subprocess
-import sys
 import plotly.express as px
-import matplotlib.pyplot as plt
-import seaborn as sns
 from sklearn.neighbors import NearestNeighbors
 from sklearn.impute import SimpleImputer
 
@@ -44,12 +42,6 @@ def descargar_generar_archivo_palas_s3():
         install_library('boto3')
 
     try:
-        # Importar las librerías necesarias después de asegurarse de que están instaladas
-        from dotenv import load_dotenv
-        import os
-        import json
-        import pandas as pd
-        import boto3
 
         # Cargar las variables de entorno desde el archivo .env
         load_dotenv()
@@ -138,10 +130,10 @@ OPCIONES_SELECTBOX_FORMULARIO = {
     "opciones_sexo": {"Mujer": 0, "Hombre":0},
     "opciones_nivel_de_juego":{"Iniciacion": 0, "Intermedio": 1, "Avanzado": 2},
     "opciones_tipo_de_juego": {"Ofensivo": 1, "Defensivo": 0},
-    "opciones_balance": {"Medio": 0, "Alto": 0.5},
+    "opciones_tipo_de_balance": {"Medio": 0, "Alto": 0.5},
     "opciones_horas_semana":{"Menos de 3,5 horas": 0, "Mas de 3.5 horas": 0.5},
-    "opciones_rango_precio": {"Menos de 100": 0, "Entre 100 y 200": 0, "Mas de 200": 0},
-    "opciones_rango_juego": {"Drive": 0, "Reves": 0.5},
+    "opciones_rango_precios": {"Menos de 100": 0, "Entre 100 y 200": 0, "Mas de 200": 0},
+    "opciones_lado_de_juego": {"Drive": 0, "Reves": 0.5},
     "opciones_lesiones_antiguas":{"Lumbares": 0.5,"Epicondilitis": 0.15,"Gemelos o fascitis": 0.5,"Cervicales": 0.25,"Hombros": 0.5,"Ninguna": 0},
     "opciones_frecuencia_lesion": {"Siempre que juego defensivamente": 0.5,"Siempre que juego ofensivamente": 0.5,"Casi siempre que juego intensamente": 0.25,"Rara vez cuando juego": 0.15},
     "opciones_cuanto_lesion": {"Menos de 3 meses": 0.5,"Entre 3 y 6 meses": 0.25,"Mas de 6 meses": 0.15}

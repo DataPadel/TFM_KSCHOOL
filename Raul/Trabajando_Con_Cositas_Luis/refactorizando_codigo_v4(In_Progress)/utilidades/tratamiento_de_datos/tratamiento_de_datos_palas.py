@@ -208,7 +208,7 @@ def calcular_scores():
     """Calcula los scores de lesión y nivel para cada fila."""
     try:
         if "df_labelizado" not in st.session_state or st.session_state["df_labelizado"] is None:
-            raise ValueError("El DataFrame labelizado no ha sido inicializado.")
+            raise ValueError("Calcular Scores (Funcion) . El DataFrame labelizado no ha sido inicializado.")
 
         df_labelizado = st.session_state["df_labelizado"]
 
@@ -237,7 +237,7 @@ def escalar_columnas():
     """Escala las columnas seleccionadas usando MinMaxScaler."""
     try:
         if "df_labelizado" not in st.session_state or st.session_state["df_labelizado"] is None:
-            raise ValueError("El DataFrame labelizado no ha sido inicializado.")
+            raise ValueError("Escalar Columnas (Funcion). El DataFrame labelizado no ha sido inicializado.")
 
         scaler = MinMaxScaler()
         columnas_a_escalar = ["score_lesion", "score_nivel"]
@@ -260,7 +260,7 @@ def regresion_a_la_media_palas():
     """Aplica una regresión a la media a las columnas específicas."""
     try:
         if "df_scaled" not in st.session_state or st.session_state["df_scaled"] is None:
-            raise ValueError("El DataFrame 'df_scaled' no ha sido inicializado.")
+            raise ValueError("Regresion A La Media Palas (Funcion) .El DataFrame 'df_scaled' no ha sido inicializado.")
 
         df_scaled = st.session_state["df_scaled"]
 

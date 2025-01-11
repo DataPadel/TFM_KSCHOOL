@@ -1,6 +1,16 @@
-import matplotlib.pyplot as plt
 import seaborn as sns
 import streamlit as st
+import matplotlib.pyplot as plt
+
+
+def graficas_palas():
+    st.title("Graficas de Palas")
+    try:
+        grafico_histograma_palas()
+        diagrama_dispersion_palas()
+        diagrama_3d_palas()
+    except Exception as e:
+       st.error(f"Graficas de Palas. Error al generar el gráfico o procesar los datos: {str(e)}")
 
 def grafico_histograma_palas():
     """Genera y muestra los histogramas de score_lesion y score_nivel."""
@@ -11,7 +21,7 @@ def grafico_histograma_palas():
 
     # Verificar que las columnas necesarias existen en el DataFrame
     if 'score_lesion' not in df_scaled.columns or 'score_nivel' not in df_scaled.columns:
-        raise ValueError("El DataFrame 'df_scaled' no contiene las columnas 'score_lesion' o 'score_nivel'.")
+        raise ValueError("Grafico Histograma Palas (Funcion) . El DataFrame 'df_scaled' no contiene las columnas 'score_lesion' o 'score_nivel'.")
 
     plt.figure(figsize=(12, 6))
 
@@ -37,7 +47,7 @@ def grafico_histograma_palas():
 def diagrama_dispersion_palas():
     """Genera un diagrama de dispersión para score_lesion y score_nivel."""
     if "df_scaled" not in st.session_state or st.session_state["df_scaled"] is None:
-        raise ValueError("El DataFrame 'df_scaled' no está inicializado.")
+        raise ValueError("Diagrama de Dispersion De Palas (Funcion) .El DataFrame 'df_scaled' no está inicializado.")
 
     df_scaled = st.session_state["df_scaled"]
 
@@ -54,7 +64,7 @@ def diagrama_dispersion_palas():
 def diagrama_3d_palas():
     """Genera un gráfico en 3D para score_lesion, score_nivel y Precio."""
     if "df_scaled" not in st.session_state or st.session_state["df_scaled"] is None:
-        raise ValueError("El DataFrame 'df_scaled' no está inicializado.")
+        raise ValueError("Diagrama 3D Palas(Funcion).El DataFrame 'df_scaled' no está inicializado.")
 
     df_scaled = st.session_state["df_scaled"]
 

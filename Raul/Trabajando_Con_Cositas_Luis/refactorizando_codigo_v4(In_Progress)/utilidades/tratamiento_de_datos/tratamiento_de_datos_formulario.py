@@ -1,5 +1,5 @@
-import pandas as pd
 import os
+import pandas as pd
 import streamlit as st
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 from utilidades.utilidades import ponderaciones_lesion, ponderaciones_nivel
@@ -244,7 +244,7 @@ def regresion_a_la_media_formulario():
     try:
         df = pd.read_csv('formulario_combinaciones.csv')
     except FileNotFoundError:
-        raise FileNotFoundError("El archivo 'formulario_combinaciones.csv' no se encuentra en el directorio actual.")
+        raise FileNotFoundError("Regresion A La Media Formulario (Funcion). El archivo 'formulario_combinaciones.csv' no se encuentra en el directorio actual.")
 
     # Asignar directamente los valores ajustados a las columnas finales requeridas
     try:
@@ -257,9 +257,9 @@ def regresion_a_la_media_formulario():
     output_file = 'df_scaled_formularios_3.0.csv'
     try:
         df.to_csv(output_file, index=False)
-        print(f"Archivo guardado correctamente como '{output_file}'.")
+        print(f"Regresion A La Media Formulario(Funcion). Archivo guardado correctamente como '{output_file}'.")
     except Exception as e:
-        raise IOError(f"Error al guardar el archivo '{output_file}': {e}")
+        raise IOError(f"Regresion A La Media Formulario(Funcion). Error al guardar el archivo '{output_file}': {e}")
 
       # Guardar el DataFrame ajustado en session_state
     st.session_state["df_scaled_formularios"] = df_scaled_formularios

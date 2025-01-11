@@ -1,5 +1,16 @@
-import matplotlib.pyplot as plt
 import streamlit as st
+import matplotlib.pyplot as plt
+
+
+def graficas_formularios():
+    st.title("Graficas de Formularios")
+
+    try:
+        grafico_dispersion_formularios()
+        
+    except Exception as e:
+       st.error(f"Graficas de Formularios . Error al generar el gráfico o procesar los datos: {str(e)}")
+
 
 def grafico_dispersion_formularios():
     """Genera un gráfico de dispersión 2D basado en datos de df_scaled_formularios."""
@@ -35,4 +46,4 @@ def grafico_dispersion_formularios():
         # Mostrar el gráfico en Streamlit
         st.pyplot(fig)
     except ValueError as e:
-        st.error(f"Error al generar el gráfico o procesar los datos: {e}")
+        st.error(f"Grafico de Dispersion Formularios. Error al generar el gráfico o procesar los datos: {e}")
