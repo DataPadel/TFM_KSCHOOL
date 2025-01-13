@@ -1,0 +1,7 @@
+[theme]
+primaryColor = "#2D471D"  # Verde oscuro
+backgroundColor = "#F5F5F5"  # Blanco suave
+secondaryBackgroundColor = "#C2D6A6"  # Verde pastel (color secundario)
+textColor = "#333333"  # Texto oscuro
+font = "sans serif"  # Fuente sobria predeterminada
+
