@@ -42,24 +42,24 @@ def lectura_tratamiento_datos_palas():
         # Verificar si ya existe "df" en session_state
         if "df" not in st.session_state or st.session_state["df"] is None:
             # Ruta del archivo CSV
-            ruta_csv = r'C:\repositorio\TFM_KSCHOOL\Raul\Trabajando_Con_Cositas_Luis\refactorizando_codigo_v4(In_Progress)\PNpalas_DF_2_procesado.csv'
+            ruta_csv = r'C:\repositorio\TFM_KSCHOOL\Raul\Trabajando_Con_Cositas_Luis\streamlit_v5__Reconicimento_De_Imagenes_Golpes(In_Progress)\PNpalas_DF_3.csv'
             
             # Leer el archivo CSV
             df = pd.read_csv(ruta_csv)
 
             # Eliminación de columnas no necesarias
-            columnas_a_eliminar = ['Producto', 'Acabado']
+            columnas_a_eliminar = ['producto', 'acabado']
             df = df.drop(columnas_a_eliminar, axis=1)
 
             # Transformaciones de columnas
-            df['Precio'] = df['Precio'].apply(limpiar_precio)
-            df['Balance'] = df['Balance'].apply(tratar_balance)
-            df['Nucleo'] = df['Nucleo'].apply(tratar_nucleo)
-            df['Cara'] = df['Cara'].apply(tratar_cara)
-            df['Dureza'] = df['Dureza'].apply(tratar_dureza)
-            df['Nivel de Juego'] = df['Nivel de Juego'].apply(tratar_nivel_juego)
-            df['Tipo de Juego'] = df['Tipo de Juego'].apply(tratar_tipo_juego)
-            df['Jugador'] = df['Jugador'].apply(tratar_jugador)
+            df['Precio'] = df['precio'].apply(limpiar_precio)
+            df['Balance'] = df['balance'].apply(tratar_balance)
+            df['Nucleo'] = df['núcleo'].apply(tratar_nucleo)
+            df['Cara'] = df['cara'].apply(tratar_cara)
+            df['Dureza'] = df['dureza'].apply(tratar_dureza)
+            df['Nivel de Juego'] = df['nivel de juego'].apply(tratar_nivel_juego)
+            df['Tipo de Juego'] = df['tipo de juego'].apply(tratar_tipo_juego)
+            df['Jugador'] = df['jugador'].apply(tratar_jugador)
 
             # Guardar el DataFrame procesado en session_state
             st.session_state["df"] = df
@@ -71,91 +71,113 @@ def lectura_tratamiento_datos_palas():
         raise RuntimeError(f"Error al leer o procesar el archivo CSV: {e}")
 
 
-# Funciones auxiliares para transformar columnas
 def limpiar_precio(precio):
     """Convierte el precio a formato float eliminando símbolos y caracteres innecesarios."""
-    return float(precio.replace('€', '').replace(',', '.').strip())
+    try:
+        if isinstance(precio, float):  # Si ya es float, devolver directamente
+            return precio
+        if precio is None:  # Manejar valores nulos
+            return None
+        precio = str(precio)  # Convertir a cadena si no lo es
+        return float(precio.replace('€', '').replace(',', '.').strip())
+    except (ValueError, AttributeError):
+        return None  # Devolver None si no se puede procesar
 
 def tratar_balance(balance):
     """Transforma los valores de la columna Balance según las reglas especificadas."""
+    if balance is None:  # Manejar valores nulos
+        return 'No data'
     if balance in ['medio', 'alto', 'bajo']:
         return balance
-    elif 'principiante' in balance or 'intermedio' in balance:
-        return 'medio'
-    elif 'avanzado' in balance or 'competición' in balance:
-        return 'alto'
-    else:
-        return 'No data'
+    if isinstance(balance, str):  # Verificar que sea cadena antes de buscar palabras clave
+        if 'principiante' in balance or 'intermedio' in balance:
+            return 'medio'
+        if 'avanzado' in balance or 'competición' in balance:
+            return 'alto'
+    return 'No data'
 
 def tratar_nucleo(nucleo):
     """Transforma los valores de la columna Núcleo según las reglas especificadas."""
+    if nucleo is None:  # Manejar valores nulos
+        return 'No data'
     if nucleo in ['soft eva', 'medium eva', 'hard eva', 'foam']:
         return nucleo
-    elif any(sub in nucleo for sub in ['ultrasoft eva', 'black eva, soft eva', 'supersoft eva']):
-        return 'soft eva'
-    elif 'eva, polietileno' in nucleo:
-        return 'foam'
-    elif 'black eva hr9' in nucleo:
-        return 'hard eva'
-    elif any(sub in nucleo for sub in ['black eva hr3', 'eva', 'multieva']):
-        return 'medium eva'
-    else:
-        return 'No data'
+    if isinstance(nucleo, str):  # Verificar que sea cadena antes de buscar palabras clave
+        if any(sub in nucleo for sub in ['ultrasoft eva', 'black eva, soft eva', 'supersoft eva']):
+            return 'soft eva'
+        if 'eva, polietileno' in nucleo:
+            return 'foam'
+        if 'black eva hr9' in nucleo:
+            return 'hard eva'
+        if any(sub in nucleo for sub in ['black eva hr3', 'eva', 'multieva']):
+            return 'medium eva'
+    return 'No data'
 
 def tratar_cara(cara):
     """Transforma los valores de la columna Cara según las reglas especificadas."""
+    if cara is None:  # Manejar valores nulos
+        return 'No data'
     if cara in ['fibra de carbono', 'fibra de vidrio']:
         return cara
-    elif any(sub in cara for sub in ['carbono 12k, fibra de vidrio', 
-                                     'fibra de vidrio, carbono 15k',
-                                     'carbono, fibra de vidrio']):
-        return 'mix'
-    else:
-        return 'No data'
+    if isinstance(cara, str):  # Verificar que sea cadena antes de buscar palabras clave
+        if any(sub in cara for sub in ['carbono 12k, fibra de vidrio',
+                                       'fibra de vidrio, carbono 15k',
+                                       'carbono, fibra de vidrio']):
+            return 'mix'
+    return 'No data'
 
 def tratar_dureza(dureza):
     """Transforma los valores de la columna Dureza según las reglas especificadas."""
+    if dureza is None:  # Manejar valores nulos
+        return 'No data'
     if dureza in ['media', 'blanda', 'dura']:
         return dureza
-    elif 'dura, media' in dureza:
-        return 'dura'
-    elif 'media, blanda' in dureza:
-        return 'blanda'
-    else:
-        return 'No data'
+    if isinstance(dureza, str):  # Verificar que sea cadena antes de buscar palabras clave
+        if 'dura, media' in dureza:
+            return 'dura'
+        if 'media, blanda' in dureza:
+            return 'blanda'
+    return 'No data'
 
 def tratar_nivel_juego(nivel):
     """Transforma los valores de la columna Nivel de Juego según las reglas especificadas."""
+    if nivel is None:  # Manejar valores nulos
+        return None
     if nivel == 'No data':
         return nivel
-    elif 'profesional' in nivel:
-        return 'pro'
-    elif any(sub in nivel for sub in ['avanzado / competición', 
-                                      'avanzado / competición, profesional',
-                                      'principiante / intermedio, profesional']):
-        return 'avanzado'
-    elif 'principiante / intermedio' in nivel:
-        return 'principiante'
-    else:
-        return None
+    if isinstance(nivel, str):  # Verificar que sea cadena antes de buscar palabras clave
+        if 'profesional' in nivel:
+            return 'pro'
+        if any(sub in nivel for sub in ['avanzado / competición',
+                                        'avanzado / competición, profesional',
+                                        'principiante / intermedio, profesional']):
+            return 'avanzado'
+        if 'principiante / intermedio' in nivel:
+            return 'principiante'
+    return None
 
 def tratar_tipo_juego(tipo):
     """Transforma los valores de la columna Tipo de Juego según las reglas especificadas."""
+    if tipo is None:  # Manejar valores nulos
+        return 'No data'
     if tipo in ['control', 'polivalente', 'potencia']:
         return tipo
-    elif 'control, potencia' in tipo:
-        return 'polivalente'
-    else:
-        return 'No data'
+    if isinstance(tipo, str):  # Verificar que sea cadena antes de buscar palabras clave
+        if 'control, potencia' in tipo:
+            return 'polivalente'
+    return 'No data'
 
 def tratar_jugador(jugador):
     """Transforma los valores de la columna Jugador según las reglas especificadas."""
+    if jugador is None:  # Manejar valores nulos
+        return 'No data'
     if jugador in ['hombre', 'mujer', 'junior']:
         return jugador
-    elif 'hombre, mujer' in jugador:
-        return 'mixta'
-    else:
-        return 'No data'
+    if isinstance(jugador, str):  # Verificar que sea cadena antes de buscar palabras clave
+        if 'hombre, mujer' in jugador:
+            return 'mixta'
+    return 'No data'
+
 
 def mostrar_mensaje(mensaje):
     """Muestra un mensaje en consola."""

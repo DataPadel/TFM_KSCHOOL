@@ -1,11 +1,17 @@
+import os
 import sys
+import boto3
+import json
 import subprocess
+import numpy as np
+import pandas as pd
 import streamlit as st
 import importlib.util
 import plotly.express as px
-from sklearn.neighbors import NearestNeighbors
+from dotenv import load_dotenv
+import matplotlib.pyplot as plt
 from sklearn.impute import SimpleImputer
-
+from sklearn.neighbors import NearestNeighbors
 
 #DESCARGA, CONVERSION Y GENERACION DE ARCHIVOS S3
 @st.cache_data
@@ -89,6 +95,7 @@ def descargar_generar_archivo_palas_s3():
     except Exception as e:
         print(f"Error al procesar los archivos desde S3: {e}")
 
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 #DICCIONARIOS
 
@@ -142,9 +149,9 @@ OPCIONES_SELECTBOX_FORMULARIO = {
 #Diccionario para la division de las Palas por precio (Aplicable division al clickar checkbox)
 PRECIO_MAXIMO_MAP= {"Menos de 100": 100,"Entre 100 y 200 ": 200,"Mas de 200 ": float('inf')}
 
+
 #-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-#ALGORITMO KNN
 
 def preprocesar_datos(df_palas, knn_features):
     """
@@ -204,7 +211,10 @@ def mapear_valores(df, label_mapping):
             df[column] = df[column].map(mapping)
     return df
 
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 # Función para analizar la relación entre Score y palas recomendadas
+
 def analizar_relacion_score(df_palas, palas_recomendadas):
     st.subheader("Pala Recomendada Evitar Lesión (Tipo de Juego)")
 
@@ -295,56 +305,157 @@ def analizar_relacion_score(df_palas, palas_recomendadas):
     
     st.plotly_chart(fig)
 
+#--------------------------------------------------------------------------------------------------------------------------------------------------
 
-def encontrar_vecinos_mas_cercanos_knn(df_palas, x_random, y_random, considerar_precio=False, precio_maximo=None):
+# Función para obtener las palas recomendadas usando KNN (Version Mejorada 2.0 - Incluye Imagen de Pala) 
+
+def encontrar_vecinos_mas_cercanos_knn_2d(df_palas3, x_random, y_random, considerar_precio, precio_maximo):
+    # Características para el modelo KNN
+    knn_features = ['score_lesion', 'score_nivel']
+    
+    if considerar_precio:
+        knn_features.append('Precio')
+        df_palas3 = df_palas3[df_palas3['Precio'] <= precio_maximo]
+    
+    knn = NearestNeighbors(n_neighbors=3)
+    knn.fit(df_palas3[knn_features])
+    
+    # Crear un punto de referencia para KNN
+    reference_point = pd.DataFrame(
+        [[x_random, y_random] + ([precio_maximo] if considerar_precio else [])],
+        columns=knn_features
+    )
+    
+    distances, indices = knn.kneighbors(reference_point)
+    
+    palas_recomendadas = df_palas3.iloc[indices[0]].copy()
+    print("df_palas3",df_palas3.columns)
+
+    # Optimización: mapear las columnas en un solo paso
+    for column in ['Nivel de Juego', 'Tipo de Juego', 'Balance', 'Nucleo', 'Cara', 'Dureza']:
+        palas_recomendadas[column] = palas_recomendadas[column].map(inverted_label_mapping[column])
+
+    # Devolver las palas recomendadas con la información más completa
+    return palas_recomendadas[['nombre','Nivel de Juego', 'Tipo de Juego', 'Balance', 'Nucleo', 'Cara', 'Dureza', 'Precio', 'imagen_url','score_lesion_ajustado', 'score_nivel_ajustado']]
+
+#---------------------------------------------------------------------------------------------------------------------------------------------
+
+# Función para invertir un diccionario
+
+def invertir_label_mapping(LABEL_MAPPING):
+    inverted_mapping = {}
+    for key, value_dict in LABEL_MAPPING.items():
+        inverted_mapping[key] = {v: k for k, v in value_dict.items()}
+    return inverted_mapping
+
+
+def invertir_label_mapping(LABEL_MAPPING):
+    return {key: {v: k for k, v in value_dict.items()} for key, value_dict in LABEL_MAPPING.items()}
+
+# Invertir el diccionario de mapeo
+inverted_label_mapping = invertir_label_mapping(LABEL_MAPPING)
+
+# -------------------------------------------------------------------------------------------------------------------------------------------
+
+# Gafico de Palas para mostrar la busqueda de palas por KNN con aplicacion de Rejilla por cuadrantes (Version Mejorada 2.0))
+
+def grafico_palas_rejilla(df_palas3,x_random,y_random):
+    # Crear figura
+    fig = plt.figure(figsize=(20, 14))
+
+    # Crear un gráfico en 2D
+    ax = fig.add_subplot(111)
+
+    # Definir los valores de cada eje para el DataFrame principal (df_palas)
+    x = df_palas3['score_lesion_ajustado']
+    y = df_palas3['score_nivel_ajustado']
+
+    # Crear el gráfico de dispersión 2D para df_palas
+    ax.scatter(x, y, color='blue', label='Datos de Palas')
+
+    # Crear los puntos adicionales
+    ax.scatter([x_random], [y_random],
+            color='red', s=100, label='Formularios')
+
+    # Calcular los límites con buffer
+    x_min, x_max = x.min(), x.max()
+    y_min, y_max = y.min(), y.max()
+    buffer = 0.01  # Cambia este valor para ajustar el tamaño del margen
+
+    # Ajustar límites de los ejes con el buffer
+    ax.set_xlim(x_min - buffer, x_max + buffer)
+    ax.set_ylim(y_min - buffer, y_max + buffer)
+
+    # Añadir etiquetas a los ejes
+    ax.set_xlabel('Score de Lesión (Escalado)')
+    ax.set_ylabel('Score de Nivel (Escalado)')
+
+    # Título del gráfico
+    ax.set_title('Gráfico 2D de Score de Lesión, Score de Nivel y Formulario 3 horquillas')
+
+    # Añadir leyenda para diferenciar los conjuntos de puntos
+    ax.legend()
+
+    # Configurar las particiones de Y para solo mostrar en 0.45, 0.55, 0.65
+    ax.set_yticks([0.45, 0.55, 0.65])  # Solo las marcas deseadas en Y
+    ax.grid(True, which='both', axis='both', linestyle='--', color='gray', alpha=0.5)
+
+    # Mostrar el gráfico
+    plt.show()
+
+#-------------------------------------------------------------------------------------------------------------------
+
+#Obtencion de Palas por cuadrante (Version Mejorada 2.0)
+
+def obtener_palas_por_cuadrante(df_palas3, x_random, y_random, recomendaciones_knn):
     """
-    Encuentra las 3 palas más cercanas según las características especificadas.
-
-    Args:
-        df_palas (DataFrame): DataFrame con los datos de las palas.
-        x_random (float): Coordenada X del punto de referencia.
-        y_random (float): Coordenada Y del punto de referencia.
-        considerar_precio (bool): Si se debe considerar el precio en la búsqueda.
-        precio_maximo (float): Precio máximo a considerar (si considerar_precio es True).
-
-    Returns:
-        DataFrame: DataFrame con las palas recomendadas.
+    Filtra las palas dentro del cuadrante correspondiente y mapea las etiquetas.
+    Si el nombre es NaN, lo reemplaza por 'Nombre Desconocido'.
     """
-    try:
-        # Calcular Score_Escalar_Lesion_Nivel para las palas
-        df_palas['Score_Escalar_Lesion_Nivel'] = (
-            (df_palas['score_lesion_ajustado']**2 + df_palas['score_nivel_ajustado']**2)**0.5
-        )
+    # Reemplazar valores NaN en la columna 'nombre' por 'Nombre Desconocido'
+    df_palas3['nombre'] = df_palas3['nombre'].fillna('Nombre Desconocido')
 
-        # Filtrar por precio si es necesario
-        if considerar_precio and precio_maximo is not None:
-            df_palas = df_palas[df_palas['Precio'] <= precio_maximo]
+    # Particiones de X y Y
+    particiones_x = np.arange(0.2, 1.0, 0.1)  
+    particiones_y = [0.2, 0.45, 0.55, 0.65, 0.9]
+    
+    # Determinar el cuadrante de X
+    x_cuadrante = next(((particiones_x[i], particiones_x[i + 1]) 
+                        for i in range(len(particiones_x) - 1) 
+                        if particiones_x[i] <= x_random < particiones_x[i + 1]), 
+                       (particiones_x[-2], particiones_x[-1]))  # Último intervalo
 
-        # Verificar si hay suficientes datos para KNN
-        if len(df_palas) < 3:
-            raise ValueError("No hay suficientes palas para realizar la recomendación con KNN.")
+    # Determinar el cuadrante de Y
+    y_cuadrante, y_cuadrante_upper = next(((particiones_y[i], particiones_y[i + 1]) 
+                                            for i in range(len(particiones_y) - 1) 
+                                            if particiones_y[i] <= y_random < particiones_y[i + 1]), 
+                                           (particiones_y[-1], particiones_y[-1]))  # Último valor
 
-        # Configurar y entrenar el modelo KNN
-        knn_features = ['Score_Escalar_Lesion_Nivel']
-        knn = NearestNeighbors(n_neighbors=3)
-        knn.fit(df_palas[knn_features])
+    print(f"Cuadrante X: {x_cuadrante}, Cuadrante Y: ({y_cuadrante}, {y_cuadrante_upper})")
 
-        # Crear el punto de referencia
-        z_random = (x_random**2 + y_random**2)**0.5
-        reference_point = [[z_random]]
+    # Filtrar las palas dentro de este cuadrante
+    df_palas_filtrado = df_palas3[(df_palas3['score_lesion_ajustado'] >= x_cuadrante[0]) & 
+                                  (df_palas3['score_lesion_ajustado'] < x_cuadrante[1]) & 
+                                  (df_palas3['score_nivel_ajustado'] >= y_cuadrante) & 
+                                  (df_palas3['score_nivel_ajustado'] < y_cuadrante_upper) & 
+                                  (~df_palas3['nombre'].isin(recomendaciones_knn['nombre']))].copy()
 
-        # Encontrar los vecinos más cercanos
-        distances, indices = knn.kneighbors(reference_point)
+    # Si hay palas filtradas, mapear las etiquetas
+    if not df_palas_filtrado.empty:
+        # Optimización: mapear las columnas en un solo paso
+        for column in ['Nivel de Juego', 'Tipo de Juego', 'Balance', 'Nucleo', 'Cara', 'Dureza']:
+            df_palas_filtrado[column] = df_palas_filtrado[column].map(inverted_label_mapping[column])
 
-        # Seleccionar las palas recomendadas
-        palas_recomendadas = df_palas.iloc[indices[0]].copy(deep=True)
+        # Agregar las columnas adicionales de interés
+        return df_palas_filtrado[['nombre', 'Nivel de Juego', 'Tipo de Juego', 'Balance', 'Nucleo', 'Cara', 'Dureza', 
+                                  'Precio', 'imagen_url', 'score_lesion_ajustado', 'score_nivel_ajustado']]
 
-        return palas_recomendadas[['Palas', 'score_lesion_ajustado', 'score_nivel_ajustado', 'Score_Escalar_Lesion_Nivel', 'Precio']]
+    else:
+        # Retornar un DataFrame vacío si no hay resultados
+        return pd.DataFrame(columns=['nombre', 'Nivel de Juego', 'Tipo de Juego', 'Balance', 'Nucleo', 'Cara', 'Dureza', 
+                                     'Precio', 'imagen_url','score_lesion_ajustado', 'score_nivel_ajustado'])
 
-    except Exception as e:
-        raise ValueError(f"Error en encontrar_vecinos_mas_cercanos_knn: {e}")
-
-
+#-------------------------------------------------------------------------------------------------------------------
 
 #Diccionario para la division de las Palas por precio (Aplicable division al clickar checkbox)
 PRECIO_MAXIMO_MAP= {"Menos de 100": 100,"Entre 100 y 200 ": 200,"Mas de 200 ": float('inf')}

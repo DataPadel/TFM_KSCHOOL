@@ -6,8 +6,11 @@ import plotly.express as px
 import matplotlib.pyplot as plt
 from streamlit_option_menu import option_menu
 
+#Importar Utilidades App - Archivo Utilidades
+from utilidades.utilidades import descargar_generar_archivo_palas_s3
+
 #Importar utilidades App - Importar funciones utilizadas en el fichero principal de la app
-from utilidades.app.utilidadaes_app import cargar_dataframes,analizador_graficos_datos,clasificador_golpes_padel
+from utilidades.app.utilidadaes_app import cargar_dataframes, analizador_graficos_datos, clasificador_golpes_padel
 
 #Importar archivos de utilidades : utilidades y tratamiento_de_datos_formulario
 from utilidades.tratamiento_de_datos.tratamiento_de_datos_palas import lectura_tratamiento_datos_palas, labelizar_columnas, calcular_scores, escalar_columnas, regresion_a_la_media_palas,ejecutar_una_vez
@@ -79,6 +82,7 @@ def cargar_preprocesar_datos_iniciales():
             st.session_state["df_palas"] = df_palas
 
             # Paso 1: Lectura y tratamiento de datos
+            descargar_generar_archivo_palas_s3()
             ejecutar_una_vez(lectura_tratamiento_datos_palas, "datos_leidos")
 
             # Paso 2: Procesamiento adicional (labelización, cálculos, etc.)

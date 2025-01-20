@@ -1,9 +1,9 @@
-import streamlit as st
 import pandas as pd
+import streamlit as st
 
 from utilidades.app.utilidadaes_app import obtener_dataframe_actualizado,cargar_dataframes
-from utilidades.graficos.graficos_recomendador_de_pala import diagrama_palas_palas_recomendadas,diagrama_palas_palas_recomendadas_grafica
-from utilidades.utilidades import encontrar_vecinos_mas_cercanos_knn
+from utilidades.utilidades import encontrar_vecinos_mas_cercanos_knn_2d,obtener_palas_por_cuadrante
+from utilidades.graficos.graficos_recomendador_de_pala import diagrama_palas_palas_recomendadas,diagrama_palas_palas_recomendadas_grafica,grafica_recomendaciones_knn,mostrar_imagen_palas
 
 def recomendador_de_palas():
     
@@ -13,6 +13,10 @@ def recomendador_de_palas():
         # Obtener el DataFrame actualizado desde el estado global
         df_form = obtener_dataframe_actualizado()
         _, df_palas = cargar_dataframes()
+        print("------------------------------------------------------------------------------------------------------------")
+        print("Este es el dataframe de palas que llega al recomendador de palas")
+        print(df_palas.head())
+        print(df_palas['Precio'].tolist())
 
         # Renombrar columnas del DataFrame formulario
         df_form = renombrar_columnas(df_form)
@@ -25,10 +29,12 @@ def recomendador_de_palas():
             st.error("El índice seleccionado está fuera de rango.")
             return
 
+        """
         # Crear nueva columna 'Score_Escalar_Lesion_Nivel' basada en la intersección geométrica
         df_form['Score_Escalar_Lesion_Nivel'] = (
             (df_form['Score_Escalar_Lesion']**2 + df_form['Score_Escalar_Nivel']**2)**0.5
         )
+        """
 
         # Mostrar detalles del registro seleccionado en forma tabular
         st.subheader("Detalles del Registro Seleccionado")
@@ -63,26 +69,40 @@ def recomendador_de_palas():
 
         # Iterar sobre los rangos seleccionados y generar recomendaciones por cada rango
         for rango in rangos_seleccionados:
+            
             precio_maximo = rango[1]  # Máximo del rango actual
-
             try:
-                # Llamar al método encontrar_vecinos_mas_cercanos_knn para cada rango
-                palas_recomendadas = encontrar_vecinos_mas_cercanos_knn(
-                    df_palas=df_palas,
-                    x_random=x_random,
-                    y_random=y_random,
-                    considerar_precio=True,
-                    precio_maximo=precio_maximo
-                )
 
-                if not palas_recomendadas.empty:
-                    st.subheader(f"Palas Recomendadas para el rango {rango[0]} - {rango[1]} Euros")
-                    st.dataframe(palas_recomendadas)
+                    st.subheader(f"Grafico Palas Recomendadas")
                     
-                    # Mostrar gráfico relacionado con las recomendaciones
-                    diagrama_palas_palas_recomendadas(palas_recomendadas)
+                    #PALAS RECOMENDADAS KNN
+                    recomendaciones_knn = encontrar_vecinos_mas_cercanos_knn_2d(df_palas, x_random, y_random, considerar_precio=False, precio_maximo=precio_maximo)
                     
-                    diagrama_palas_palas_recomendadas_grafica(palas_recomendadas)
+                    grafica_recomendaciones_knn(df_palas,x_random,y_random)
+                    
+                    #PALAS RECOMENDADAS REJILLA
+                    palas_recomendadas_rejilla = obtener_palas_por_cuadrante(df_palas, x_random, y_random,recomendaciones_knn)
+                    
+                    if len(palas_recomendadas_rejilla) < 2:
+                        dos_palas_recomendadas_rejilla = palas_recomendadas_rejilla
+    
+                    else:
+                        dos_palas_recomendadas_rejilla = palas_recomendadas_rejilla.sample(n=2, replace=False)
+
+                    # PALAS RECOMENDADAS = PALAS RECOMENDADAS POR KNN (recomendaciones_knn) + PALAS ALEATORIAS SUGERIDAS POR REJILLA (dos_palas_recomendadas_rejilla)
+                    
+                    palas_definitivas = pd.concat([recomendaciones_knn, dos_palas_recomendadas_rejilla], ignore_index=True)
+
+                    st.subheader(f"Tabla con Palas Recomendadas y Palas Que Quiza Te Gusten")
+                    
+                    # METODO PARA MOSTRAR LA IMAGEN DE LAS PALAS
+                    mostrar_imagen_palas(palas_definitivas)
+                    
+                    # DIAGRAMA CON TODAS LAS PALAS = PALAS KNN + PALAS SUGERIDAS POR REJILLA
+                    diagrama_palas_palas_recomendadas(palas_definitivas)
+                    
+                    #DIAGRAMA DE DISPERSION CON LA UBICACION DE TODAS LAS PALAS = PALAS KNN + PALAS SUGERIDAS POR REJILLA
+                    diagrama_palas_palas_recomendadas_grafica(palas_definitivas)
 
             except ValueError as knn_error:
                 if "No hay suficientes palas" in str(knn_error):
@@ -92,7 +112,9 @@ def recomendador_de_palas():
 
     except Exception as e:
        st.error(f"Recomendador de Palas .Error al generar el gráfico o procesar los datos: {str(e)}")
-       
+
+#------------------------------------------------------------------------------------------------------
+
 # Renombrar columnas del DataFrame df_form
 def renombrar_columnas(df_form):
     column_mapping = {
@@ -112,6 +134,7 @@ def renombrar_columnas(df_form):
     #return df_form.drop(columns=["Score", "Score_Escalar", "Rango de precio dispuesto a pagar"], errors='ignore')
     
     
+#-----------------------------------------------------------------------------------------------------------
 
 # Mostrar detalles del registro seleccionado en forma tabular
 def mostrar_detalles_registro_tabular(df_form, index):
@@ -142,3 +165,8 @@ def mostrar_detalles_registro_tabular(df_form, index):
         "Característica": selected_row.index,
         "Valor": selected_row.values
     })
+
+
+
+    
+    
