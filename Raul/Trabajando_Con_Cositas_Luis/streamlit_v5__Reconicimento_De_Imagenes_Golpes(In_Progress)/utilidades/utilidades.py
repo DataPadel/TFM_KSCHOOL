@@ -13,96 +13,13 @@ import matplotlib.pyplot as plt
 from sklearn.impute import SimpleImputer
 from sklearn.neighbors import NearestNeighbors
 
-#DESCARGA, CONVERSION Y GENERACION DE ARCHIVOS S3
-@st.cache_data
-def descargar_generar_archivo_palas_s3():
-    """
-    Descarga múltiples archivos JSON desde un bucket de Amazon S3, los convierte en DataFrames de pandas
-    y los guarda como archivos CSV en el sistema local. Verifica e instala automáticamente las
-    librerías necesarias si no están instaladas.
-
-    :return: None
-    """
-
-    def check_library_installed(library_name):
-        """
-        Verifica si una librería está instalada.
-        :param library_name: Nombre de la librería a verificar.
-        :return: True si está instalada, False si no.
-        """
-        spec = importlib.util.find_spec(library_name)
-        return spec is not None
-
-    def install_library(library_name):
-        """
-        Instala una librería usando pip.
-        :param library_name: Nombre de la librería a instalar.
-        """
-        subprocess.check_call([sys.executable, "-m", "pip", "install", library_name])
-
-    # Verificar e instalar las librerías necesarias
-    if not check_library_installed('dotenv'):
-        install_library('python-dotenv')
-
-    if not check_library_installed('boto3'):
-        install_library('boto3')
-
-    try:
-
-        # Cargar las variables de entorno desde el archivo .env
-        load_dotenv()
-
-        # Obtener las credenciales de AWS desde las variables de entorno
-        AWS_SERVER_PUBLIC_KEY = os.getenv('AWS_SERVER_PUBLIC_KEY')
-        AWS_SERVER_SECRET_KEY = os.getenv('AWS_SERVER_SECRET_KEY')
-
-        # Crear una sesión de boto3 con las credenciales de AWS
-        session = boto3.Session(
-            aws_access_key_id=AWS_SERVER_PUBLIC_KEY,
-            aws_secret_access_key=AWS_SERVER_SECRET_KEY,
-        )
-
-        # Obtener el recurso de S3
-        s3 = session.resource('s3')
-
-        # Especificar el bucket y los archivos que deseas leer
-        bucket_name = 'proyectotfm'
-        archivos_a_procesar = [
-            {"key": "caracteristicas_palas_padel.json", "output": "caracteristicas_palas_padel.csv"},
-            {"key": "formulario_combinaciones.json", "output": "formulario_combinaciones.csv"}
-        ]
-
-        for archivo in archivos_a_procesar:
-            file_key = archivo["key"]
-            output_file = archivo["output"]
-
-            # Descargar el archivo desde S3
-            obj = s3.Object(bucket_name=bucket_name, key=file_key)
-            response = obj.get()
-            data = response['Body'].read().decode('utf-8')
-
-            # Cargar el contenido JSON en un diccionario de Python
-            json_data = json.loads(data)
-
-            # Convertir el diccionario a un DataFrame de pandas
-            df = pd.DataFrame(json_data)
-
-            # Guardar el DataFrame como un archivo CSV localmente
-            df.to_csv(output_file, index=False)
-
-            print(f"Archivo CSV creado exitosamente: {output_file}")
-
-    except Exception as e:
-        print(f"Error al procesar los archivos desde S3: {e}")
-
-#-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 #DICCIONARIOS
 
 # Diccionario de mapeo para convertir valores numéricos a etiquetas descriptivas
 
 LABEL_MAPPING = {
-    "Balance": {"No data": 0, "bajo": 1, "medio": 2, "alto": 3},
+    "Balance": {"No Data": 0, "bajo": 1, "medio": 2, "alto": 3},
     "Nucleo": {"No data": 0, "foam": 1, "medium eva": 2, "hard eva": 3, "soft eva": 4},
     "Cara": {"No data": 0, "fibra de vidrio": 1, "mix": 2, "fibra de carbono": 3},
     "Dureza": {"No data": 0, "blanda": 1, "media": 2, "dura": 3},
@@ -152,6 +69,68 @@ PRECIO_MAXIMO_MAP= {"Menos de 100": 100,"Entre 100 y 200 ": 200,"Mas de 200 ": f
 
 #-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+#DESCARGA, CONVERSION Y GENERACION DE ARCHIVOS S3
+
+@st.cache_data
+def descargar_archivo_palas_formulario_s3():
+    """
+    Descarga múltiples archivos JSON desde un bucket de Amazon S3, los convierte en DataFrames de pandas,
+    y los guarda tanto como archivos CSV en el sistema local como en `st.session_state`.
+
+    :return: None
+    """
+    try:
+        # Cargar las variables de entorno desde el archivo .env
+        load_dotenv()
+
+        # Obtener las credenciales de AWS desde las variables de entorno
+        AWS_SERVER_PUBLIC_KEY = os.getenv('AWS_SERVER_PUBLIC_KEY')
+        AWS_SERVER_SECRET_KEY = os.getenv('AWS_SERVER_SECRET_KEY')
+
+        # Crear una sesión de boto3 con las credenciales de AWS
+        session = boto3.Session(
+            aws_access_key_id=AWS_SERVER_PUBLIC_KEY,
+            aws_secret_access_key=AWS_SERVER_SECRET_KEY,
+        )
+
+        # Obtener el recurso de S3
+        s3 = session.resource('s3')
+
+        # Especificar el bucket y los archivos que deseas leer
+        bucket_name = 'proyectotfm'
+        archivos_a_procesar = [
+            {"key": "caracteristicas_palas_padel.json", "output": "caracteristicas_palas_padel.csv", "session_key": "df_caracteristicas_palas"},
+            {"key": "formulario_combinaciones.json", "output": "formulario_combinaciones.csv", "session_key": "df_formulario_combinaciones"}
+        ]
+
+        for archivo in archivos_a_procesar:
+            file_key = archivo["key"]
+            output_file = archivo["output"]
+            session_key = archivo["session_key"]
+
+            # Descargar el archivo desde S3
+            obj = s3.Object(bucket_name=bucket_name, key=file_key)
+            response = obj.get()
+            data = response['Body'].read().decode('utf-8')
+
+            # Cargar el contenido JSON en un diccionario de Python
+            json_data = json.loads(data)
+
+            # Convertir el diccionario a un DataFrame de pandas
+            df = pd.DataFrame(json_data)
+
+            # Guardar el DataFrame como un archivo CSV localmente
+            df.to_csv(output_file, index=False)
+            print(f"Archivo CSV creado exitosamente: {output_file}")
+
+            # Guardar el DataFrame en session_state
+            st.session_state[session_key] = df
+
+    except Exception as e:
+        print(f"Error al procesar los archivos desde S3: {e}")
+
+
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 def preprocesar_datos(df_palas, knn_features):
     """
@@ -309,34 +288,80 @@ def analizar_relacion_score(df_palas, palas_recomendadas):
 
 # Función para obtener las palas recomendadas usando KNN (Version Mejorada 2.0 - Incluye Imagen de Pala) 
 
-def encontrar_vecinos_mas_cercanos_knn_2d(df_palas3, x_random, y_random, considerar_precio, precio_maximo):
-    # Características para el modelo KNN
-    knn_features = ['score_lesion', 'score_nivel']
+
+def encontrar_vecinos_mas_cercanos_knn_2d(df_palas3, x_random, y_random, balance_seleccionado):
+    """
+    Encuentra los vecinos más cercanos utilizando KNN basado en características 2D.
+    """
+    # Declarar LABEL_MAPPING_INVERTIDO como global
+    global LABEL_MAPPING_INVERTIDO
+
+    print("Valores únicos en la columna 'Balance':")
+    print(df_palas3['Balance'].unique())
     
-    if considerar_precio:
-        knn_features.append('Precio')
-        df_palas3 = df_palas3[df_palas3['Precio'] <= precio_maximo]
+    # Verificar si la columna 'Balance' existe
+    if "Balance" not in df_palas3.columns:
+        print("Error: La columna 'Balance' no existe en el DataFrame.")
+        return None
+
+    # Aplicar mapeo inverso si es necesario
+    if df_palas3["Balance"].dtype == object:  # Si contiene valores categóricos
+        if "LABEL_MAPPING" not in locals() or "Balance" not in LABEL_MAPPING:
+            print("Hola 1")
+            print("Error: El diccionario LABEL_MAPPING o su clave 'Balance' no están definidos.")
+            return None
+
+        print("Hola 2")
+        # Crear un mapeo inverso para convertir valores categóricos a numéricos
+        LABEL_MAPPING_INVERTIDO = {v: k for k, v in LABEL_MAPPING["Balance"].items()}
+        df_palas3["balance_mapeado"] = df_palas3["Balance"].map(LABEL_MAPPING_INVERTIDO)
+
+        # Verificar si hay valores no mapeados
+        if df_palas3["balance_mapeado"].isnull().any():
+            print("Advertencia: Hay valores no mapeados en 'Balance'.")
+            print(df_palas3[df_palas3["balance_mapeado"].isnull()])
+            return None
+    else:
+        # Si ya es numérica, solo renombrar para usarla consistentemente
+        df_palas3["balance_mapeado"] = df_palas3["Balance"]
+
+    # Configuración del modelo KNN
+    knn_features = ['score_lesion_ajustado', 'score_nivel_ajustado', 'balance_mapeado']
     
-    knn = NearestNeighbors(n_neighbors=3)
-    knn.fit(df_palas3[knn_features])
-    
+    try:
+        knn = NearestNeighbors(n_neighbors=3)
+        knn.fit(df_palas3[knn_features])
+    except ValueError as e:
+        print(f"Error al entrenar KNN: {e}")
+        return None
+
     # Crear un punto de referencia para KNN
     reference_point = pd.DataFrame(
-        [[x_random, y_random] + ([precio_maximo] if considerar_precio else [])],
+        [[x_random, y_random, balance_seleccionado]], 
         columns=knn_features
     )
-    
+
+    if reference_point.isnull().any().any():
+        print("El punto de referencia contiene NaN:")
+        print(reference_point)
+        return None
+
+    # Encontrar los vecinos más cercanos
     distances, indices = knn.kneighbors(reference_point)
-    
+
+        # Obtener las palas recomendadas
     palas_recomendadas = df_palas3.iloc[indices[0]].copy()
-    print("df_palas3",df_palas3.columns)
 
-    # Optimización: mapear las columnas en un solo paso
-    for column in ['Nivel de Juego', 'Tipo de Juego', 'Balance', 'Nucleo', 'Cara', 'Dureza']:
-        palas_recomendadas[column] = palas_recomendadas[column].map(inverted_label_mapping[column])
+    # Aplicar el mapeo inverso a las columnas relevantes
+    for columna in ['Balance', 'Nivel de Juego', 'Tipo de Juego','Dureza','Cara']:
+        if columna in palas_recomendadas.columns and columna in LABEL_MAPPING_INVERTIDO:
+            palas_recomendadas[columna] = palas_recomendadas[columna].map(LABEL_MAPPING_INVERTIDO[columna]).fillna("No Data")
 
-    # Devolver las palas recomendadas con la información más completa
-    return palas_recomendadas[['nombre','Nivel de Juego', 'Tipo de Juego', 'Balance', 'Nucleo', 'Cara', 'Dureza', 'Precio', 'imagen_url','score_lesion_ajustado', 'score_nivel_ajustado']]
+    # Retornar las palas recomendadas con los valores categóricos
+    return palas_recomendadas[['Palas', 'Balance', 'Nivel de Juego', 'Tipo de Juego', 
+                            'Precio', 'Imagen URL', 'Nucleo', 'Cara', 'Dureza', 
+                            'score_lesion_ajustado', 'score_nivel_ajustado']]
+    
 
 #---------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -408,12 +433,14 @@ def grafico_palas_rejilla(df_palas3,x_random,y_random):
 #Obtencion de Palas por cuadrante (Version Mejorada 2.0)
 
 def obtener_palas_por_cuadrante(df_palas3, x_random, y_random, recomendaciones_knn):
+    
+    global LABEL_MAPPING
     """
     Filtra las palas dentro del cuadrante correspondiente y mapea las etiquetas.
     Si el nombre es NaN, lo reemplaza por 'Nombre Desconocido'.
     """
     # Reemplazar valores NaN en la columna 'nombre' por 'Nombre Desconocido'
-    df_palas3['nombre'] = df_palas3['nombre'].fillna('Nombre Desconocido')
+    df_palas3['Palas'] = df_palas3['Palas'].fillna('Nombr Pala Desconocido')
 
     # Particiones de X y Y
     particiones_x = np.arange(0.2, 1.0, 0.1)  
@@ -438,7 +465,7 @@ def obtener_palas_por_cuadrante(df_palas3, x_random, y_random, recomendaciones_k
                                   (df_palas3['score_lesion_ajustado'] < x_cuadrante[1]) & 
                                   (df_palas3['score_nivel_ajustado'] >= y_cuadrante) & 
                                   (df_palas3['score_nivel_ajustado'] < y_cuadrante_upper) & 
-                                  (~df_palas3['nombre'].isin(recomendaciones_knn['nombre']))].copy()
+                                  (~df_palas3['Palas'].isin(recomendaciones_knn['Palas']))].copy()
 
     # Si hay palas filtradas, mapear las etiquetas
     if not df_palas_filtrado.empty:
@@ -447,13 +474,13 @@ def obtener_palas_por_cuadrante(df_palas3, x_random, y_random, recomendaciones_k
             df_palas_filtrado[column] = df_palas_filtrado[column].map(inverted_label_mapping[column])
 
         # Agregar las columnas adicionales de interés
-        return df_palas_filtrado[['nombre', 'Nivel de Juego', 'Tipo de Juego', 'Balance', 'Nucleo', 'Cara', 'Dureza', 
-                                  'Precio', 'imagen_url', 'score_lesion_ajustado', 'score_nivel_ajustado']]
+        return df_palas_filtrado[['Palas', 'Nivel de Juego', 'Tipo de Juego', 'Balance', 'Nucleo', 'Cara', 'Dureza', 
+                                  'Precio', 'Imagen URL', 'score_lesion_ajustado', 'score_nivel_ajustado']]
 
     else:
         # Retornar un DataFrame vacío si no hay resultados
-        return pd.DataFrame(columns=['nombre', 'Nivel de Juego', 'Tipo de Juego', 'Balance', 'Nucleo', 'Cara', 'Dureza', 
-                                     'Precio', 'imagen_url','score_lesion_ajustado', 'score_nivel_ajustado'])
+        return pd.DataFrame(columns=['Palas', 'Nivel de Juego', 'Tipo de Juego', 'Balance', 'Nucleo', 'Cara', 'Dureza', 
+                                     'Precio', 'Imagen URL','score_lesion_ajustado', 'score_nivel_ajustado'])
 
 #-------------------------------------------------------------------------------------------------------------------
 

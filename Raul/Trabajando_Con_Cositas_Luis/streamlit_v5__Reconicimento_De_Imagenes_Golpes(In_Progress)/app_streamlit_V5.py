@@ -1,4 +1,5 @@
 import base64
+import os
 import pandas as pd
 import seaborn as sns
 import streamlit as st
@@ -7,13 +8,16 @@ import matplotlib.pyplot as plt
 from streamlit_option_menu import option_menu
 
 #Importar Utilidades App - Archivo Utilidades
-from utilidades.utilidades import descargar_generar_archivo_palas_s3
+from utilidades.utilidades import descargar_archivo_palas_formulario_s3
 
 #Importar utilidades App - Importar funciones utilizadas en el fichero principal de la app
 from utilidades.app.utilidadaes_app import cargar_dataframes, analizador_graficos_datos, clasificador_golpes_padel
 
-#Importar archivos de utilidades : utilidades y tratamiento_de_datos_formulario
-from utilidades.tratamiento_de_datos.tratamiento_de_datos_palas import lectura_tratamiento_datos_palas, labelizar_columnas, calcular_scores, escalar_columnas, regresion_a_la_media_palas,ejecutar_una_vez
+#Importar archivos de utilidades : utilidades y tratamiento_de_datos_palas
+from utilidades.tratamiento_de_datos.tratamiento_de_datos_palas import lectura_tratamiento_datos_palas, labelizar_columnas, calcular_scores, escalar_columnas, regresion_a_la_media_palas,limpieza_df_expandido,ejecutar_una_vez
+
+#Importar archivos de utilidades : utilidades y tratamiento_de_datos_formularios
+from utilidades.tratamiento_de_datos.tratamiento_de_datos_formulario import procesar_datos_formulario_csv,crear_dataframes_con_scores,procesar_scores_y_guardar,regresion_a_la_media_formulario
 
 #Importar Formulario
 from utilidades.app.formulario import formulario
@@ -73,29 +77,45 @@ if "datos_procesados" not in st.session_state:
 def cargar_preprocesar_datos_iniciales():
     """Preprocesa los datos iniciales solo una vez."""
     if not st.session_state.get("datos_procesados", False):
-        
         try:
 
-            # Paso 1: Cargar DataFrames
-            df_form, df_palas = cargar_dataframes()
-            st.session_state["df_form"] = df_form
-            st.session_state["df_palas"] = df_palas
+            # Paso 1: Lectura de palas y formulario
+            descargar_archivo_palas_formulario_s3()
 
-            # Paso 1: Lectura y tratamiento de datos
-            descargar_generar_archivo_palas_s3()
+            # Paso 2: Tratamiento de Datos Palas
             ejecutar_una_vez(lectura_tratamiento_datos_palas, "datos_leidos")
+            #ejecutar_una_vez(limpieza_df_expandido, "Limpieza df_expandido Realizada")
+            ejecutar_una_vez(labelizar_columnas, "Labelizacion de Palas Realizada")
+            ejecutar_una_vez(calcular_scores, "Scores de Palas Calculados")
+            ejecutar_una_vez(escalar_columnas, "Columnas de Palas Escaladas")
+            ejecutar_una_vez(regresion_a_la_media_palas, "Regresion de Palas Aplicada")
+            
+            print("Procesamiento de Palas Completado. Fichero df_scaled_palas_3.0 generado")
+            
 
-            # Paso 2: Procesamiento adicional (labelización, cálculos, etc.)
-            ejecutar_una_vez(labelizar_columnas, "labelizacion_realizada")
-            ejecutar_una_vez(calcular_scores, "scores_calculados")
-            ejecutar_una_vez(escalar_columnas, "columnas_escaladas")
-            ejecutar_una_vez(regresion_a_la_media_palas, "regresion_aplicada")
+            # Paso 3: Tratamiento de Datos Formulario
+            ejecutar_una_vez(procesar_datos_formulario_csv, 'Label Mapping Aplicado')
+            ejecutar_una_vez(crear_dataframes_con_scores, 'Dataframe con Scores Creado')
+            ejecutar_una_vez(procesar_scores_y_guardar, 'Dataframe con Scores Procesado')
+            ejecutar_una_vez(regresion_a_la_media_formulario, "Regresion a la media Formulario Realizada")
+            
+            # Validar si el archivo df_scaled_formularios_3.0.csv se creó correctamente
+            output_file = 'df_scaled_formularios_3.0.csv'
+            if not os.path.exists(output_file):
+                raise FileNotFoundError(f"El archivo '{output_file}' no se creó correctamente.")
+
+            ejecutar_una_vez(regresion_a_la_media_formulario, "Regresion a la media Formulario Realizada")
+            print("Procesamiento de Formulario Completado. Fichero df_scaled_formularios_3.0 generado")
 
             # Marcar como procesado
             st.session_state["datos_procesados"] = True
+            
 
+        except FileNotFoundError as e:
+            st.error(f"Archivo no encontrado: {e}")
         except Exception as e:
             st.error(f"Error durante el preprocesamiento: {e}")
+
 
 
 # Carga de dataframes y preprocesamiento de datos

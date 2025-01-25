@@ -4,25 +4,32 @@ import streamlit as st
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 from utilidades.utilidades import ponderaciones_lesion, ponderaciones_nivel
 
-# Variables globales
-df_transformado = None
-mapeos_generados = None
-df_scored_lesion = None
-df_scored_nivel = None
-df_scaled_formularios = None
+if "df_transformado" not in st.session_state:
+    st.session_state["df_transformado"] = None
+
+if "mapeos_generados" not in st.session_state:
+    st.session_state["mapeos_generados"] = None
+
+if "df_scored_lesion" not in st.session_state:
+    st.session_state["df_scored_lesion"] = None
+
+if "df_scored_nivel" not in st.session_state:
+    st.session_state["df_scored_nivel"] = None
+
+if "df_scaled_formularios" not in st.session_state:
+    st.session_state["df_scaled_formularios"] = None
+
+#--------------------------------------------------------------
 
 #LABEL ENCODING(FORMULARIO CSV)
-
 def procesar_datos_formulario_csv():
     """
     Procesa un archivo CSV aplicando LabelEncoder a columnas categóricas.
 
     Modifica:
-        df_transformado (global): DataFrame transformado con LabelEncoder.
-        mapeos_generados (global): Diccionario de mapeos originales -> codificados.
+        - st.session_state["df_transformado"]: DataFrame transformado con LabelEncoder.
+        - st.session_state["mapeos_generados"]: Diccionario de mapeos originales -> codificados.
     """
-    global df_transformado, mapeos_generados
-
     # Ruta del archivo CSV
     csv_file_path = 'formulario_combinaciones.csv'
     try:
@@ -56,8 +63,11 @@ def procesar_datos_formulario_csv():
                 df_label[columna] = labelencoder.fit_transform(df_label[columna].astype(str))
                 mapeos_generados[columna] = dict(zip(range(len(labelencoder.classes_)), labelencoder.classes_))
 
-        # Guardar el DataFrame transformado en la variable global
-        df_transformado = df_label
+        # Guardar el DataFrame transformado y los mapeos en session_state
+        st.session_state["df_transformado"] = df_label
+        st.session_state["mapeos_generados"] = mapeos_generados
+
+        print("Df_transformado", st.session_state["df_transformado"].head())
         print("Label encoding aplicado correctamente.")
 
         # Crear un diccionario adicional para mapear valores codificados a originales
@@ -78,137 +88,119 @@ def procesar_datos_formulario_csv():
     except Exception as e:
         print(f"Error al procesar el archivo CSV: {e}")
 
-
+#--------------------------------------------------------------
 
 def crear_dataframes_con_scores():
     """
     Crea dos DataFrames con scores personalizados para lesiones y nivel.
 
     Modifica:
-        df_scored_lesion (global): DataFrame con scores de lesiones.
-        df_scored_nivel (global): DataFrame con scores de nivel.
+        - st.session_state["df_scored_lesion"]: DataFrame con scores de lesiones.
+        - st.session_state["df_scored_nivel"]: DataFrame con scores de nivel.
     """
-    global df_transformado, df_scored_lesion, df_scored_nivel
+    # Acceder al DataFrame transformado desde session_state
+    df_transformado = st.session_state.get("df_transformado")
 
     if df_transformado is None or df_transformado.empty:
         raise ValueError("El DataFrame transformado está vacío o no definido.")
 
+    # Crear copias del DataFrame transformado
     df_scored_lesion = df_transformado.copy()
     df_scored_nivel = df_transformado.copy()
 
+    # Aplicar ponderaciones para lesiones
     for columna, ponderacion in ponderaciones_lesion.items():
         if columna in df_scored_lesion.columns:
-            df_scored_lesion[columna] = df_scored_lesion[columna].map(ponderacion)
+            df_scored_lesion[columna] = df_scored_lesion[columna].map(ponderacion).fillna(0)
 
+    # Aplicar ponderaciones para nivel
     for columna, ponderacion in ponderaciones_nivel.items():
         if columna in df_scored_nivel.columns:
-            df_scored_nivel[columna] = df_scored_nivel[columna].map(ponderacion)
+            df_scored_nivel[columna] = df_scored_nivel[columna].map(ponderacion).fillna(0)
+
+    # Calcular la columna 'Score' como la suma de todas las columnas
+    df_scored_lesion['Score'] = df_scored_lesion.sum(axis=1)
+    df_scored_nivel['Score'] = df_scored_nivel.sum(axis=1)
+
+    # Guardar los DataFrames en session_state
+    st.session_state["df_scored_lesion"] = df_scored_lesion
+    
+    st.session_state["df_scored_nivel"] = df_scored_nivel
 
     print("DataFrames con scores generados correctamente.")
 
+
+#--------------------------------------------------------------
 
 def procesar_scores_y_guardar(output_file='df_scaled_formularios.csv'):
     """
     Calcula los scores totales y escalados, guarda el resultado en un archivo CSV,
     y devuelve el último registro procesado.
-
-    Args:
-        output_file (str): Nombre del archivo CSV donde se guardará el resultado.
-
-    Returns:
-        dict: Diccionario con los valores del último registro procesado (Score_Lesion y Score_Nivel).
     """
-    global df_scored_lesion, df_scored_nivel
+    # Acceder a los DataFrames desde session_state
+    df_scored_lesion = st.session_state.get("df_scored_lesion")
+    
+    df_scored_nivel = st.session_state.get("df_scored_nivel")
 
-    # Validar que los DataFrames existen y son válidos
     if df_scored_lesion is None or df_scored_nivel is None:
         raise ValueError("Los DataFrames proporcionados son inválidos o no están definidos.")
 
-    # Definir las fórmulas específicas para cada DataFrame
-    formulas = {
-        'df_scored_lesion': lambda df: 1 - df.sum(axis=1),
-        'df_scored_nivel': lambda df: df.sum(axis=1)
-    }
-
-    # Procesar cada DataFrame con su fórmula correspondiente
-    for df_name, df, score_formula in [
-        ('df_scored_lesion', df_scored_lesion, formulas['df_scored_lesion']),
-        ('df_scored_nivel', df_scored_nivel, formulas['df_scored_nivel'])
-    ]:
-        if not isinstance(df, pd.DataFrame) or df.empty:
-            raise ValueError(f"El DataFrame '{df_name}' está vacío o no es válido.")
-
-        # Convertir todas las columnas a tipo float, ignorando errores
-        try:
-            df[:] = df.apply(pd.to_numeric, errors='coerce')  # Convertir todo a numérico
-            df.fillna(0, inplace=True)  # Reemplazar NaN con 0
-        except Exception as e:
-            raise ValueError(f"Error al convertir las columnas a numéricas en '{df_name}': {e}")
-
-        # Calcular el score total usando la fórmula específica
-        try:
-            df['Score'] = score_formula(df)
-        except Exception as e:
-            raise ValueError(f"Error al calcular la columna 'Score' en '{df_name}': {e}")
-
-        # Validar que la columna 'Score' no tiene valores nulos
-        if df['Score'].isnull().any():
-            raise ValueError(f"La columna 'Score' en '{df_name}' contiene valores nulos.")
-
-    # Escalar los scores
+    # Escalar los scores y crear un nuevo DataFrame
     scaler = MinMaxScaler(feature_range=(0, 1))
     try:
-        df_scored_lesion['Score_Escalar'] = scaler.fit_transform(df_scored_lesion[['Score']])
-        df_scored_nivel['Score_Escalar'] = scaler.fit_transform(df_scored_nivel[['Score']])
-    except Exception as e:
-        raise ValueError(f"Error al escalar los scores: {e}")
-
-    # Crear un nuevo DataFrame para guardar
-    try:
-        df_scaled_formularios = pd.DataFrame({
-            'Score_Lesion': df_scored_lesion['Score_Escalar'],
-            'Score_Nivel': df_scored_nivel['Score_Escalar']
+        st.session_state["df_scored_lesion"]['Score_Escalar'] = scaler.fit_transform(df_scored_lesion[['Score']])
+        
+        st.session_state["df_scored_nivel"]['Score_Escalar'] = scaler.fit_transform(df_scored_nivel[['Score']])
+        
+        st.session_state["df_scaled_formularios"] = pd.DataFrame({
+            'Score_Lesion': st.session_state["df_scored_lesion"]['Score_Escalar'],
+            'Score_Nivel': st.session_state["df_scored_nivel"]['Score_Escalar']
         })
-    except KeyError as e:
-        raise KeyError(f"Error al crear el DataFrame final: {e}")
-
-    # Guardar en archivo CSV
-    try:
-        df_scaled_formularios.to_csv(output_file, index=False)
-        print(f"Archivo '{output_file}' guardado correctamente.")
-    except Exception as e:
-        raise IOError(f"Error al guardar el archivo: {e}")
-
-    # Devolver el último registro procesado
-    ultimo_registro = {
-        'Score_Lesion': df_scored_lesion.iloc[-1]['Score_Escalar'],
-        'Score_Nivel': df_scored_nivel.iloc[-1]['Score_Escalar']
-    }
+        
+        # Guardar en archivo CSV
+        output_path = os.path.join(os.getcwd(), output_file)
+        st.session_state["df_scaled_formularios"].to_csv(output_path, index=False)
+        print(f"Archivo '{output_path}' guardado correctamente.")
     
-    print("Primeros resultados de df_scored_lesion : Score y Score_Escalar")
-    print(df_scored_lesion[['Score', 'Score_Escalar']].head())
-    print("Primeros resultados de df_scored_nivel : Score y Score_Escalar")
-    print(df_scored_nivel[['Score', 'Score_Escalar']].head())
-    print("ultimo_registro ",ultimo_registro)
+    except Exception as e:
+        raise IOError(f"Error al guardar el archivo '{output_file}': {e}")
 
-    return ultimo_registro
+    return {
+        'Score_Lesion': st.session_state["df_scaled_formularios"]['Score_Lesion'].iloc[-1],
+        'Score_Nivel': st.session_state["df_scaled_formularios"]['Score_Nivel'].iloc[-1]
+    }
 
+
+#--------------------------------------------------------------
 
 def regresion_a_la_media_formulario():
     """
-    Aplica una regresión a la media a las columnas 'Score_Escalar' de los DataFrames globales
-    df_scored_nivel y df_scored_lesion según las siguientes reglas:
-    - Valores >= 0.8 y <= 1: Se convierten en 0.8.
-    - Valores >= 0.7 y < 0.8: Se reducen un 40%.
-    - Valores >= 0.6 y < 0.7: Se reducen un 20%.
-    - Valores >= 0.0 y <= 0.2: Se convierten en 0.2.
-    - Valores > 0.2 y <= 0.3: Se reducen un 40%.
-    - Valores > 0.3 y <= 0.4: Se reducen un 20%.
+    Aplica una regresión a la media a las columnas 'Score_Escalar' de los DataFrames almacenados en session_state:
+    - 'df_scored_nivel'
+    - 'df_scored_lesion'
+
+    Las reglas son:
+    - Valores >= 0.9 y <= 1: Se convierten en 0.9.
+    - Valores >= 0.7 y < 0.9: Se reducen un 20%.
+    - Valores >= 0.6 y < 0.7: Se reducen un 10%.
+    - Valores >= 0.0 y <= 0.1: Se convierten en 0.1.
+    - Valores > 0.1 y <= 0.3: Se aumentan un 20%.
+    - Valores > 0.3 y <= 0.4: Se aumentan un 10%.
 
     Otros valores permanecen iguales.
-    """
-    global df_scored_nivel, df_scored_lesion, df_scaled_formularios
 
+    Returns:
+        pd.DataFrame: DataFrame con los valores ajustados.
+    """
+    # Acceder a los DataFrames desde session_state
+    df_scored_nivel = st.session_state.get("df_scored_nivel")
+    df_scored_lesion = st.session_state.get("df_scored_lesion")
+
+    # Validar que los DataFrames existen y son válidos
+    if df_scored_nivel is None or df_scored_lesion is None:
+        raise ValueError("Los DataFrames proporcionados son inválidos o no están definidos.")
+
+    # Definir la función de ajuste
     def ajustar_valor(valor):
         # Reglas superiores
         if 0.9 <= valor <= 1:
@@ -240,7 +232,7 @@ def regresion_a_la_media_formulario():
         'Score_Nivel': df_scored_nivel['Score_Escalar_Ajustado']
     })
 
-   # Leer el archivo formulario_combinaciones.csv
+    # Leer el archivo formulario_combinaciones.csv
     try:
         df = pd.read_csv('formulario_combinaciones.csv')
     except FileNotFoundError:
@@ -261,9 +253,11 @@ def regresion_a_la_media_formulario():
     except Exception as e:
         raise IOError(f"Regresion A La Media Formulario(Funcion). Error al guardar el archivo '{output_file}': {e}")
 
-      # Guardar el DataFrame ajustado en session_state
+    # Guardar el DataFrame ajustado en session_state
     st.session_state["df_scaled_formularios"] = df_scaled_formularios
+
     return df_scaled_formularios
+
 
 
 

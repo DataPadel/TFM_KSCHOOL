@@ -6,9 +6,11 @@ from pygwalker.api.streamlit import StreamlitRenderer
 # Funciones relacionada con la funcionalidad FORMULARIO
 
 # Función para marcar que el formulario ha sido modificado
+"""
 def actualizar_estado_formulario():
     st.session_state["formulario_modificado"] = True
     st.session_state["formulario_enviado"] = False  # Reinicia el estado de enviado
+"""
 
 @st.cache_data
 def cargar_dataframes():
@@ -35,14 +37,37 @@ def cargar_dataframes():
     return df_form, df_palas
 
 
-# Función para obtener el DataFrame actualizado desde el estado global
-def obtener_dataframe_actualizado():
+def obtener_dataframe_actualizado(forzar_recarga=False):
+    """
+    Obtiene el DataFrame actualizado desde session_state o lo carga desde el archivo CSV si no existe.
+    
+    Args:
+        forzar_recarga (bool): Si es True, fuerza la recarga del DataFrame desde el archivo CSV.
+        
+    Returns:
+        pd.DataFrame: El DataFrame actualizado.
+    """
+    # Si se solicita una recarga, eliminar df_form del estado de sesión
+    if forzar_recarga and "df_form" in st.session_state:
+        del st.session_state["df_form"]
+
+    # Verificar si df_form ya está en session_state
     if "df_form" in st.session_state:
+        print("Usando df_form almacenado en session_state.")
         return st.session_state["df_form"]
     else:
+        # Cargar los datos desde el archivo
+        print("Cargando df_form desde el archivo CSV.")
         df_form, _ = cargar_dataframes()
-        st.session_state["df_form"] = df_form  # Asegurar que se guarde en session_state
+
+        # Validar si hay valores faltantes significativos
+        if df_form.empty or df_form.isnull().mean().mean() > 0.5:  # Más del 50% NaN
+            raise ValueError("El DataFrame cargado contiene demasiados valores faltantes.")
+
+        # Guardar en session_state
+        st.session_state["df_form"] = df_form
         return df_form
+
     
 # -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 

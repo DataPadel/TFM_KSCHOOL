@@ -22,7 +22,7 @@ def diagrama_palas_palas_recomendadas(palas_recomendadas):
     # Crear un gráfico ajustado con un tamaño más proporcionado
     fig, ax = plt.subplots(figsize=(12, 8))  # Ajustar el tamaño de la figura
     ax.bar(
-        palas_recomendadas['nombre'],
+        palas_recomendadas['Palas'],
         palas_recomendadas['Precio'],
         color=colores[:len(palas_recomendadas)],  # Aplicar colores según la longitud de los datos
         width=0.6  # Ajustar el ancho de las barras
@@ -146,6 +146,7 @@ def diagrama_palas_palas_recomendadas_grafica(palas_definitivas):
 
 
 def mostrar_imagen_palas(palas_recomendadas):
+    print("Palas Recomendadas Imagen", palas_recomendadas.columns)
     """
     Muestra las palas recomendadas donde las imágenes se pueden abrir y cerrar dentro de la misma página,
     con un diseño estilizado.
@@ -238,10 +239,12 @@ def mostrar_imagen_palas(palas_recomendadas):
     <table class="styled-table">
         <thead>
             <tr>
-                <th>Nombre</th>
-                <th>Score Lesión Ajustado</th>
-                <th>Score Nivel Ajustado</th>
-                <th>Precio</th>
+                <th>Pala</th>
+                <th>Nivel de Juego</th>
+                <th>Tipo de Juego</th>
+                <th>Balance</th>
+                <th>Dureza</th>
+                <th>Cara</th>
             </tr>
         </thead>
         <tbody>
@@ -249,11 +252,13 @@ def mostrar_imagen_palas(palas_recomendadas):
 
     for _, row in df_mostrar.iterrows():
         html_content += f"""
-        <tr class="table-row" onclick="showImage('{row['imagen_url']}')">
-            <td>{row['nombre']}</td>
-            <td>{row['score_lesion_ajustado']}</td>
-            <td>{row['score_nivel_ajustado']}</td>
-            <td>{row['Precio']} €</td>
+        <tr class="table-row" onclick="showImage('{row['Imagen URL']}')">
+            <td>{row['Palas']}</td>
+            <td>{row['Nivel de Juego']}</td>
+            <td>{row['Tipo de Juego']}</td>
+            <td>{row['Balance']} </td>
+            <td>{row['Dureza']} </td>
+            <td>{row['Cara']} </td>
         </tr>
         """
 
