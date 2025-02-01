@@ -5,13 +5,6 @@ from pygwalker.api.streamlit import StreamlitRenderer
 
 # Funciones relacionada con la funcionalidad FORMULARIO
 
-# Función para marcar que el formulario ha sido modificado
-"""
-def actualizar_estado_formulario():
-    st.session_state["formulario_modificado"] = True
-    st.session_state["formulario_enviado"] = False  # Reinicia el estado de enviado
-"""
-
 @st.cache_data
 def cargar_dataframes():
     progress_text = "Cargando DataFrames. Por favor, espere..."
@@ -53,11 +46,9 @@ def obtener_dataframe_actualizado(forzar_recarga=False):
 
     # Verificar si df_form ya está en session_state
     if "df_form" in st.session_state:
-        print("Usando df_form almacenado en session_state.")
         return st.session_state["df_form"]
     else:
         # Cargar los datos desde el archivo
-        print("Cargando df_form desde el archivo CSV.")
         df_form, _ = cargar_dataframes()
 
         # Validar si hay valores faltantes significativos
@@ -78,9 +69,9 @@ def analizador_graficos_datos():
 
     # Cargar un DataFrame de ejemplo (puedes usar tus propios datos)
     try:
-        df = pd.read_csv('PNpalas_DF_2_procesado.csv')  # Cambia la ruta según tus datos
+        df = pd.read_csv('df_scaled_formularios_3.0.csv')  # Cambia la ruta según tus datos
     except FileNotFoundError:
-        st.error("No se encontró el archivo 'bike_sharing_dc.csv'. Por favor, verifica la ruta.")
+        st.error("No se encontró el archivo. Por favor, verifica la ruta.")
         return
 
     # Inicializar Pygwalker Renderer

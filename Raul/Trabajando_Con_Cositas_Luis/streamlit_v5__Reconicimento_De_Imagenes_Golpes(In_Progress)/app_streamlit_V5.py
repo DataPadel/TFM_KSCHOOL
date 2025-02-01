@@ -1,35 +1,37 @@
-import base64
 import os
-import pandas as pd
-import seaborn as sns
+import base64
 import streamlit as st
 import plotly.express as px
 import matplotlib.pyplot as plt
 from streamlit_option_menu import option_menu
 
+
+#Importar Formulario
+from utilidades.app.formulario import formulario
+
+#Import graficas de Palas
+from utilidades.graficos.graficos_palas import graficas_palas
+
+#Importar Recomendador de Palas
+from utilidades.app.recomendador_de_palas import recomendador_de_palas
+
 #Importar Utilidades App - Archivo Utilidades
 from utilidades.utilidades import descargar_archivo_palas_formulario_s3
+
+#Importar graficas de Formularios
+from utilidades.graficos.graficos_formularios import graficas_formularios
+
+from utilidades.tratamiento_de_datos.utilidades_tratamiento_de_datos_palas import ejecutar_una_vez
 
 #Importar utilidades App - Importar funciones utilizadas en el fichero principal de la app
 from utilidades.app.utilidadaes_app import cargar_dataframes, analizador_graficos_datos, clasificador_golpes_padel
 
 #Importar archivos de utilidades : utilidades y tratamiento_de_datos_palas
-from utilidades.tratamiento_de_datos.tratamiento_de_datos_palas import lectura_tratamiento_datos_palas, labelizar_columnas, calcular_scores, escalar_columnas, regresion_a_la_media_palas,limpieza_df_expandido,ejecutar_una_vez
+from utilidades.tratamiento_de_datos.tratamiento_de_datos_palas import lectura_tratamiento_datos_palas, labelizar_columnas, calcular_scores, escalar_columnas, regresion_a_la_media_palas
 
 #Importar archivos de utilidades : utilidades y tratamiento_de_datos_formularios
 from utilidades.tratamiento_de_datos.tratamiento_de_datos_formulario import procesar_datos_formulario_csv,crear_dataframes_con_scores,procesar_scores_y_guardar,regresion_a_la_media_formulario
 
-#Importar Formulario
-from utilidades.app.formulario import formulario
-
-#Importar Recomendador de Palas
-from utilidades.app.recomendador_de_palas import recomendador_de_palas
-
-#Import graficas de Palas
-from utilidades.graficos.graficos_palas import graficas_palas
-
-#Importar graficas de Formularios
-from utilidades.graficos.graficos_formularios import graficas_formularios
 
 # Configuración de la página para ancho completo
 st.set_page_config(page_title="Plai Padel Pro", layout="wide")
@@ -84,15 +86,12 @@ def cargar_preprocesar_datos_iniciales():
 
             # Paso 2: Tratamiento de Datos Palas
             ejecutar_una_vez(lectura_tratamiento_datos_palas, "datos_leidos")
-            #ejecutar_una_vez(limpieza_df_expandido, "Limpieza df_expandido Realizada")
             ejecutar_una_vez(labelizar_columnas, "Labelizacion de Palas Realizada")
             ejecutar_una_vez(calcular_scores, "Scores de Palas Calculados")
             ejecutar_una_vez(escalar_columnas, "Columnas de Palas Escaladas")
             ejecutar_una_vez(regresion_a_la_media_palas, "Regresion de Palas Aplicada")
-            
             print("Procesamiento de Palas Completado. Fichero df_scaled_palas_3.0 generado")
             
-
             # Paso 3: Tratamiento de Datos Formulario
             ejecutar_una_vez(procesar_datos_formulario_csv, 'Label Mapping Aplicado')
             ejecutar_una_vez(crear_dataframes_con_scores, 'Dataframe con Scores Creado')
@@ -144,7 +143,5 @@ elif st.session_state["menu_option"] == "Graficas de palas":
     graficas_palas()
 elif st.session_state["menu_option"] == "Graficas de Formularios": 
     graficas_formularios()
-elif st.session_state["menu_option"] == "Analizador de Graficas/Datos": 
-    analizador_graficos_datos()
-elif st.session_state["menu_option"] == "Clasificador de Golpes de Padel": 
-    clasificador_golpes_padel()
+#elif st.session_state["menu_option"] == "Analizador de Graficas/Datos": 
+#    analizador_graficos_datos()

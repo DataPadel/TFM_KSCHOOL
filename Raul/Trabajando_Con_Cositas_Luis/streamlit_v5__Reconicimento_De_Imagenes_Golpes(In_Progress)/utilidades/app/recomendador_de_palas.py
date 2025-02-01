@@ -1,9 +1,8 @@
 import pandas as pd
 import streamlit as st
 
-from utilidades.app.utilidadaes_app import obtener_dataframe_actualizado,cargar_dataframes
 from utilidades.utilidades import encontrar_vecinos_mas_cercanos_knn_2d,obtener_palas_por_cuadrante
-from utilidades.graficos.graficos_recomendador_de_pala import diagrama_palas_palas_recomendadas,diagrama_palas_palas_recomendadas_grafica,grafica_recomendaciones_knn,mostrar_imagen_palas
+from utilidades.graficos.graficos_recomendador_de_pala import diagrama_palas_palas_recomendadas,diagrama_palas_palas_recomendadas_grafica,mostrar_imagen_palas,mostrar_palas_en_tarjetas
 
 
 LABEL_MAPPING = {"balance": {0: "No data", 1: "Bajo", 2: "Medio", 3: "Alto"},}
@@ -29,20 +28,24 @@ def recomendador_de_palas():
         df_form = renombrar_columnas(df_form)
 
         # -----------------------------------------------
-        # Seleccionar el índice del registro a procesar
+        # Crear una lista de índices en orden inverso
         # -----------------------------------------------
-        registro_index = st.slider(
+        
+        # Crear una lista de índices en orden inverso desde el último registro hasta el primero
+        indices_inversos = list(range(len(df_form) - 1, -1, -1))  # Del último al primero
+
+        # Usar select_slider para invertir los valores visibles
+        registro_index = st.select_slider(
             "Índice del Registro Formulario",
-            min_value=0,
-            max_value=len(df_form) - 1,
-            step=1,
+            options=indices_inversos,  # Mostrar los índices en orden inverso
+            value=indices_inversos[0],  # Comienza con el índice más alto
+            key="slider_registro_inverso",
         )
+
 
         # -----------------------------------------------
         # Mostrar detalles del registro seleccionado
         # -----------------------------------------------
-        st.subheader("Detalles del Registro Seleccionado")
-        
         detalles_registro_df = mostrar_detalles_registro_tabular(df_form, registro_index)
         
         if detalles_registro_df.empty:
@@ -55,7 +58,6 @@ def recomendador_de_palas():
         # Verificar y obtener el balance seleccionado
         # -----------------------------------------------
         try:
-            # Filtrar para obtener el valor asociado a 'Balance'
             balance_value = detalles_registro_df.loc[
                 detalles_registro_df["Característica"].str.lower() == "balance", "Valor"
             ].values[0]
@@ -71,7 +73,6 @@ def recomendador_de_palas():
 
         # Convertir el texto del balance a un valor numérico
         balance_seleccionado_num = obtener_balance(balance_value)
-        print("Balance seleccionado Num",balance_seleccionado_num)
         
         if balance_seleccionado_num is None:
             st.error(f"El balance seleccionado ('{balance_value}') no es válido.")
@@ -84,7 +85,7 @@ def recomendador_de_palas():
             x_random = df_form.iloc[registro_index]["Score_Escalar_Lesion"]
             y_random = df_form.iloc[registro_index]["Score_Escalar_Nivel"]
             
-            st.write(f"Coordenadas seleccionadas: Lesión={x_random}, Nivel={y_random}")
+            st.write(f"Coordenadas seleccionadas: Lesión={round(x_random, 2)}, Nivel={round(y_random, 2)}")
         
         except KeyError as e:
             st.error(f"Error al obtener las coordenadas del usuario: {str(e)}")
@@ -105,7 +106,9 @@ def recomendador_de_palas():
         # -----------------------------------------------
         st.subheader("Palas Recomendadas")
         
-        mostrar_imagen_palas(palas_definitivas)
+        mostrar_palas_en_tarjetas(palas_definitivas)
+        
+        #mostrar_imagen_palas(palas_definitivas)
         
         diagrama_palas_palas_recomendadas(palas_definitivas)
                     
@@ -115,11 +118,12 @@ def recomendador_de_palas():
         st.error(f"Error inesperado: {str(e)}")
 
 
+
+
 #------------------------------------------------------------------------------------------------------
 
 # Renombrar columnas del DataFrame df_form
 def renombrar_columnas(df_form):
-    print("Renombrar columnas del DataFrame df_form",df_form.columns)
     column_mapping = {
         "Cuantas horas juegas a la semana": "Horas a la Semana",
         "Indique su peso": "Peso",
@@ -150,8 +154,6 @@ def mostrar_detalles_registro_tabular(df_form, index):
     Returns:
         pd.DataFrame: DataFrame con las características y valores del registro seleccionado.
     """
-    # Imprimir las columnas disponibles para depuración
-    print("DF_FORM COLUMNAS:", df_form.columns)
 
     # Identificar columnas no deseadas
     columnas_no_deseadas = ["Score_Escalar_Lesion", "Score_Escalar_Nivel"]
@@ -165,9 +167,6 @@ def mostrar_detalles_registro_tabular(df_form, index):
         # Filtrar las columnas no deseadas y seleccionar la fila por índice
         selected_row = df_form.drop(columns=columnas_no_deseadas, errors='ignore').iloc[index]
 
-        print("Contenido de selected_row después del filtrado:")
-        print(selected_row)
-
         # Filtrar valores None o NaN
         selected_row = selected_row.dropna()
 
@@ -180,9 +179,6 @@ def mostrar_detalles_registro_tabular(df_form, index):
             "Característica": selected_row.index,
             "Valor": selected_row.values
         })
-
-        print("Contenido del DataFrame detalles_registro_df:")
-        print(detalles_registro_df)
 
         return detalles_registro_df
 

@@ -13,7 +13,7 @@ def graficas_formularios():
 
 
 def grafico_dispersion_formularios():
-    """Genera un gráfico de dispersión 2D basado en datos de df_scaled_formularios."""
+    """Genera un gráfico de dispersión 2D basado en datos de df_scaled_formularios con el eje X invertido."""
     try:
         # Verificar si df_scaled_formularios está disponible en st.session_state
         if "df_scaled_formularios" not in st.session_state or st.session_state["df_scaled_formularios"] is None:
@@ -40,10 +40,14 @@ def grafico_dispersion_formularios():
         ax.set_xlabel('Score Lesion')
         ax.set_ylabel('Score Nivel')
 
+        # Invertir el eje X
+        ax.invert_xaxis()
+
         # Título del gráfico
-        ax.set_title('Gráfico de dispersión 2D de puntajes')
+        ax.set_title('Gráfico de dispersión 2D de puntajes (Eje X Invertido)')
 
         # Mostrar el gráfico en Streamlit
         st.pyplot(fig)
     except ValueError as e:
         st.error(f"Grafico de Dispersion Formularios. Error al generar el gráfico o procesar los datos: {e}")
+
