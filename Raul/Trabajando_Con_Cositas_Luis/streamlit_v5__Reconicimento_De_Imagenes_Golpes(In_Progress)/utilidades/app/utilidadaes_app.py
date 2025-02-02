@@ -58,36 +58,3 @@ def obtener_dataframe_actualizado(forzar_recarga=False):
         # Guardar en session_state
         st.session_state["df_form"] = df_form
         return df_form
-
-    
-# -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-# Programa Tipo Tableau que permite analizar datos graficamente(Pygwalker)
-
-def analizador_graficos_datos():
-    st.title("Analizador Graficos/Datos (Tipo Tableau)")
-
-    # Cargar un DataFrame de ejemplo (puedes usar tus propios datos)
-    try:
-        df = pd.read_csv('df_scaled_formularios_3.0.csv')  # Cambia la ruta según tus datos
-    except FileNotFoundError:
-        st.error("No se encontró el archivo. Por favor, verifica la ruta.")
-        return
-
-    # Inicializar Pygwalker Renderer
-    @st.cache_resource
-    def get_pyg_renderer(dataframe: pd.DataFrame) -> "StreamlitRenderer":
-        return StreamlitRenderer(dataframe)
-
-    renderer = get_pyg_renderer(df)
-
-    # Explorar los datos con Pygwalker
-    renderer.explorer()
-    
-
-#-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-#Clasificador de Golpes de Padel que a partir de una o varias imagenes nos permite distinguir el tipo de golpe y si esta bien o mal ejecutado
-
-def clasificador_golpes_padel():
-    return "Clasificador de Golpes de Padel"

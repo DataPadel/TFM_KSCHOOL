@@ -23,9 +23,6 @@ from utilidades.graficos.graficos_formularios import graficas_formularios
 
 from utilidades.tratamiento_de_datos.utilidades_tratamiento_de_datos_palas import ejecutar_una_vez
 
-#Importar utilidades App - Importar funciones utilizadas en el fichero principal de la app
-from utilidades.app.utilidadaes_app import cargar_dataframes, analizador_graficos_datos, clasificador_golpes_padel
-
 #Importar archivos de utilidades : utilidades y tratamiento_de_datos_palas
 from utilidades.tratamiento_de_datos.tratamiento_de_datos_palas import lectura_tratamiento_datos_palas, labelizar_columnas, calcular_scores, escalar_columnas, regresion_a_la_media_palas
 
@@ -125,7 +122,7 @@ cargar_preprocesar_datos_iniciales()
 with st.sidebar:
     opcion_seleccionada = option_menu(
         menu_title="Plai Padel Pro",
-        options=["Formulario", "Recomendador de Pala", "Graficas de palas","Graficas de Formularios","Analizador de Graficas/Datos"], 
+        options=["Formulario", "Recomendador de Pala", "Graficas de palas","Graficas de Formularios"], 
         icons=["pencil-fill", "bar-chart-fill", "graph-up","graph-up","table"], 
         menu_icon="cast",
         default_index=0,
@@ -143,5 +140,3 @@ elif st.session_state["menu_option"] == "Graficas de palas":
     graficas_palas()
 elif st.session_state["menu_option"] == "Graficas de Formularios": 
     graficas_formularios()
-#elif st.session_state["menu_option"] == "Analizador de Graficas/Datos": 
-#    analizador_graficos_datos()

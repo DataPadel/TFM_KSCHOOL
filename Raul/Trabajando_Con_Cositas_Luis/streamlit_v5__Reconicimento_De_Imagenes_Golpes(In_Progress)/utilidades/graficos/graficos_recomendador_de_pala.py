@@ -161,162 +161,6 @@ def diagrama_palas_palas_recomendadas_grafica(palas_definitivas):
     st.plotly_chart(fig, use_container_width=True)
 
 
-def mostrar_imagen_palas(palas_recomendadas):
-    """
-    Muestra las palas recomendadas con un diseño estilizado,
-    ajustando proporciones del contenedor de imágenes y añadiendo
-    un temporizador para cierre automático con desvanecimiento.
-    """
-    # Crear una copia del DataFrame para evitar modificar el original
-    df_mostrar = palas_recomendadas.copy()
-
-    # Generar HTML con estilo para la tabla y funcionalidad para mostrar/cerrar imágenes
-    html_content = """
-    <style>
-        .image-container {
-            display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 1000;
-            background-color: rgba(0, 0, 0, 0.8);
-            padding: 15px; /* Reducir padding */
-            border-radius: 10px;
-            opacity: 1; /* Opacidad inicial */
-        }
-        .image-container img {
-            border: 4px solid #C2D6A6; /* Verde pastel */
-            border-radius: 10px; /* Bordes redondeados */
-            max-width: 95%; /* Ocupa casi todo el ancho del contenedor */
-            max-height: 90%; /* Ocupa casi todo el alto del contenedor */
-            height: auto; /* Mantener proporción */
-        }
-        .image-container .close-button {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            color: white;
-            background-color: red;
-            border: none;
-            border-radius: 50%;
-            width: 25px; /* Botón más pequeño */
-            height: 25px;
-            font-size: 18px; /* Reducir tamaño de fuente */
-            cursor: pointer;
-        }
-        .styled-table {
-            border-collapse: collapse;
-            margin: auto; /* Centrar la tabla */
-            font-size: 14px; /* Reducir tamaño de fuente */
-            font-family: 'sans-serif';
-            width: 95%; /* Ajustar ancho al contenedor */
-            background-color: #F5F5F5; /* Fondo blanco suave */
-            color: #333333; /* Texto oscuro */
-            border-radius: 10px; /* Bordes redondeados */
-        }
-        .styled-table thead tr {
-            background-color: #C2D6A6; /* Verde pastel */
-            color: #333333; /* Texto oscuro */
-        }
-        .styled-table th, .styled-table td {
-            padding: 10px; /* Reducir padding para mejor ajuste */
-        }
-        .styled-table tbody tr:nth-of-type(even) {
-            background-color: #f3f3f3;
-        }
-        .styled-table tbody tr:hover {
-            background-color: #D5E8D4; /* Verde claro al pasar el cursor */
-        }
-    </style>
-    <script>
-        let fadeOutTimeout;
-
-        function showImage(url) {
-            const container = document.getElementById('image-container');
-            const img = document.getElementById('popup-image');
-            img.src = url;
-            
-            // Mostrar el contenedor
-            container.style.display = 'block';
-            
-            // Reiniciar opacidad por si fue cerrada antes
-            container.style.opacity = '1';
-
-            // Iniciar temporizador para desvanecer el contenedor después de 10 segundos
-            clearTimeout(fadeOutTimeout);
-            fadeOutTimeout = setTimeout(() => {
-                fadeOut(container);
-            }, 10000);
-        }
-
-        function closeImage() {
-            const container = document.getElementById('image-container');
-            
-            // Cerrar inmediatamente y limpiar temporizador
-            container.style.display = 'none';
-            clearTimeout(fadeOutTimeout);
-        }
-
-        function fadeOut(element) {
-            let opacity = parseFloat(window.getComputedStyle(element).opacity); // Obtener opacidad actual
-           
-           // Reducir opacidad gradualmente
-           const fadeInterval = setInterval(() => {
-               if (opacity <= 0) { // Si opacidad llega a cero, ocultar elemento
-                   clearInterval(fadeInterval);
-                   element.style.display = 'none';
-               } else {
-                   opacity -= 0.05; // Reducir opacidad en pasos pequeños
-                   element.style.opacity = opacity.toString();
-               }
-           }, 50); // Intervalo de desvanecimiento (50ms)
-       }
-    </script>
-    <div id="image-container" class="image-container">
-        <button class="close-button" onclick="closeImage()">×</button>
-        <img id="popup-image" src="" alt="Imagen de la pala">
-    </div>
-    <table class="styled-table">
-        <thead>
-          <tr>
-              <th>Pala</th>
-              <th>Nivel de Juego</th>
-              <th>Tipo de Juego</th>
-              <th>Balance</th>
-              <th>Dureza</th>
-              <th>Cara</th>
-              <th>Score Nivel Pala</th>
-              <th>Score Lesión Pala</th>
-          </tr>
-      </thead>
-      <tbody>
-      """
-
-    for _, row in df_mostrar.iterrows():
-        html_content += f"""
-          <tr class="table-row" onclick="showImage('{row['Imagen URL']}')">
-              <td>{row['Palas']}</td>
-              <td>{row['Nivel de Juego']}</td>
-              <td>{row['Tipo de Juego']}</td>
-              <td>{row['Balance']} </td>
-              <td>{row['Dureza']} </td>
-              <td>{row['Cara']} </td>
-              <td>{round(row['score_nivel_ajustado'], 2)}</td>
-              <td>{round(row['score_lesion_ajustado'], 2)}</td>
-
-          </tr>
-          """
-
-    html_content += """
-          </tbody>
-      </table>
-      """
-
-    # Renderizar el HTML usando components.html
-    components.html(html_content, height=700, scrolling=True)
-    
-    
 def mostrar_palas_en_tarjetas(palas_recomendadas):
     """
     Muestra las palas recomendadas en un diseño de tarjetas estilizadas.
@@ -387,4 +231,76 @@ def mostrar_palas_en_tarjetas(palas_recomendadas):
 
     # Renderizar el HTML usando components.html
     components.html(html_content, height=800, scrolling=True)
+    
+def mostrar_tabla_caracteristicas(df):
+    """
+    Muestra una tabla estilizada y responsiva utilizando HTML y CSS.
+
+    Args:
+        df (DataFrame): DataFrame con las características a mostrar.
+    """
+    # Generar el contenido HTML con estilo
+    html_table = """
+    <style>
+        .table-container {
+            max-width: 800px; /* Ancho máximo */
+            margin: 20px auto; /* Centrado horizontal */
+            overflow-x: auto; /* Habilitar desplazamiento horizontal si es necesario */
+            font-family: Arial, sans-serif;
+        }
+        .responsive-table {
+            width: 100%; /* Tabla ocupa todo el ancho del contenedor */
+            border-collapse: collapse;
+            font-size: 16px; /* Tamaño de fuente ajustado */
+        }
+        .responsive-table thead tr {
+            background-color: #C2D6A6; /* Verde pastel */
+            color: #333333;
+        }
+        .responsive-table th, .responsive-table td {
+            border: 1px solid #dddddd;
+            padding: 12px 15px; /* Espaciado interno */
+            text-align: left; /* Alineación del texto */
+        }
+        .responsive-table tbody tr:nth-of-type(even) {
+            background-color: #f9f9f9; /* Fondo alternado */
+        }
+        .responsive-table tbody tr:hover {
+            background-color: #D5E8D4; /* Fondo verde claro al pasar el cursor */
+        }
+    </style>
+    <div class="table-container">
+        <table class="responsive-table">
+            <thead>
+                <tr>
+                    <th>Característica</th>
+                    <th>Valor</th>
+                </tr>
+            </thead>
+            <tbody>
+    """
+
+    # Agregar filas al HTML dinámicamente
+    for _, row in df.iterrows():
+        html_table += f"""
+        <tr>
+            <td>{row['Característica']}</td>
+            <td>{row['Valor']}</td>
+        </tr>
+        """
+
+    html_table += """
+            </tbody>
+        </table>
+    </div>
+    """
+
+    # Renderizar la tabla en Streamlit usando components.html
+    components.html(html_table, height=400, scrolling=True)
+
+
+
+
+
+
 
