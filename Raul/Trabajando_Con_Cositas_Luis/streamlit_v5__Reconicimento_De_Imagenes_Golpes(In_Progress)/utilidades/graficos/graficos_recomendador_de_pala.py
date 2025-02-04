@@ -1,5 +1,5 @@
-import seaborn as sns
 import streamlit as st
+import plotly.express as px
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import streamlit.components.v1 as components
@@ -46,7 +46,7 @@ def diagrama_palas_palas_recomendadas(palas_recomendadas):
     # Mostrar el gráfico en Streamlit
     st.plotly_chart(fig, use_container_width=True)
 
-
+#-----------------------------------------------------------------------------------------------
 
 def grafica_recomendaciones_knn(df_palas, x_random, y_random):
     """
@@ -100,11 +100,8 @@ def grafica_recomendaciones_knn(df_palas, x_random, y_random):
     # Mostrar el gráfico en Streamlit
     st.pyplot(fig)
 
-    
-    
-import plotly.express as px
-import plotly.graph_objects as go
-import streamlit as st
+
+#-----------------------------------------------------------------------------------------------
 
 def diagrama_palas_palas_recomendadas_grafica(palas_definitivas):
     """

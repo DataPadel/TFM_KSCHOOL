@@ -96,14 +96,14 @@ def recomendador_de_palas():
         # Mostrar resultados finales
         # -----------------------------------------------
         st.subheader("Palas Recomendadas")
-
+        
+        
         mostrar_palas_en_tarjetas(palas_definitivas)
-
         diagrama_palas_palas_recomendadas(palas_definitivas)
+        diagrama_palas_palas_recomendadas_grafica(palas_definitivas)
 
     except Exception as e:
         st.error(f"Error inesperado: {str(e)}")
-
 
 
 #------------------------------------------------------------------------------------------------------
@@ -172,20 +172,7 @@ def mostrar_detalles_registro_tabular(df_form, index):
         st.error(f"Error al procesar el registro seleccionado: {str(e)}")
         return pd.DataFrame()  # Retornar un DataFrame vacío
 
-
 #-----------------------------------------------------------------------------------------------------------
-
-def mostrar_resultados(palas_definitivas):
-    """
-    Muestra los resultados finales al usuario.
-    """
-    st.subheader("Tabla con Palas Recomendadas y Palas Que Quizá Te Gusten")
-    
-    mostrar_imagen_palas(palas_definitivas)
-    diagrama_palas_palas_recomendadas(palas_definitivas)
-    diagrama_palas_palas_recomendadas_grafica(palas_definitivas)
-
-
 
 def generar_recomendaciones(df_palas, x_random, y_random, balance_seleccionado_num):
     """
