@@ -186,7 +186,7 @@ def mostrar_palas_en_tarjetas(palas_recomendadas):
             font-family: Arial, sans-serif;
         }
         .card img {
-            max-width: 100%;
+            max-width: 50%; /* Cambiado a 50% */
             height: auto;
             border-radius: 10px;
         }
@@ -228,6 +228,77 @@ def mostrar_palas_en_tarjetas(palas_recomendadas):
 
     # Renderizar el HTML usando components.html
     components.html(html_content, height=800, scrolling=True)
+def mostrar_palas_en_tarjetas(palas_recomendadas):
+    """
+    Muestra las palas recomendadas en un diseño de tarjetas estilizadas.
+    """
+    # Crear una copia del DataFrame para evitar modificar el original
+    df_mostrar = palas_recomendadas.copy()
+
+    # Generar HTML con estilo para las tarjetas
+    html_content = """
+    <style>
+        .card-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .card {
+            background-color: #f9f9f9;
+            border: 2px solid #C2D6A6; /* Verde pastel */
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            width: 300px;
+            padding: 15px;
+            text-align: center;
+            font-family: Arial, sans-serif;
+        }
+        .card img {
+            max-width: 50%; /* Cambiado a 50% */
+            height: auto;
+            border-radius: 10px;
+        }
+        .card h3 {
+            color: #333333;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        .card p {
+            color: #666666;
+            font-size: 14px;
+            margin: 5px 0;
+        }
+        .card .highlight {
+            color: #C2D6A6; /* Verde pastel */
+            font-weight: bold;
+        }
+    </style>
+    <div class="card-container">
+    """
+
+    # Generar una tarjeta por cada pala recomendada
+    for _, row in df_mostrar.iterrows():
+        html_content += f"""
+        <div class="card">
+            <img src="{row['Imagen URL']}" alt="{row['Palas']}">
+            <h3>{row['Palas']}</h3>
+            <p><span class="highlight">Nivel de Juego:</span> {row['Nivel de Juego']}</p>
+            <p><span class="highlight">Tipo de Juego:</span> {row['Tipo de Juego']}</p>
+            <p><span class="highlight">Balance:</span> {row['Balance']}</p>
+            <p><span class="highlight">Dureza:</span> {row['Dureza']}</p>
+            <p><span class="highlight">Cara:</span> {row['Cara']}</p>
+            <p><span class="highlight">Score Nivel Pala:</span> {round(row['score_nivel_ajustado'], 2)}</p>
+            <p><span class="highlight">Score Lesión Pala:</span> {round(row['score_lesion_ajustado'], 2)}</p>
+        </div>
+        """
+
+    html_content += "</div>"
+
+    # Renderizar el HTML usando components.html
+    components.html(html_content, height=800, scrolling=True)
+
     
 def mostrar_tabla_caracteristicas(df):
     """
