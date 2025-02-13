@@ -1,12 +1,9 @@
 import os
-import sys
 import boto3
 import json
-import subprocess
 import numpy as np
 import pandas as pd
 import streamlit as st
-import importlib.util
 import plotly.express as px
 from dotenv import load_dotenv
 import matplotlib.pyplot as plt
@@ -311,7 +308,6 @@ def encontrar_vecinos_mas_cercanos_knn_2d(df_palas3, x_random, y_random, balance
             print("Error: El diccionario LABEL_MAPPING o su clave 'Balance' no están definidos.")
             return None
 
-        print("Hola 2")
         # Crear un mapeo inverso para convertir valores categóricos a numéricos
         LABEL_MAPPING_INVERTIDO = {v: k for k, v in LABEL_MAPPING["Balance"].items()}
         df_palas3["balance_mapeado"] = df_palas3["Balance"].map(LABEL_MAPPING_INVERTIDO)
@@ -342,8 +338,6 @@ def encontrar_vecinos_mas_cercanos_knn_2d(df_palas3, x_random, y_random, balance
     )
 
     if reference_point.isnull().any().any():
-        print("El punto de referencia contiene NaN:")
-        print(reference_point)
         return None
 
     # Encontrar los vecinos más cercanos
@@ -582,4 +576,3 @@ SCORE_NIVEL = {
     "Superficie": {0: 0, 1: 0, 2: 0.25},
     "Tipo de Juego": {0: 0, 1: 0, 2: 0.10, 3: 0.30},
 }
-

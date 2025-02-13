@@ -5,13 +5,6 @@ from pygwalker.api.streamlit import StreamlitRenderer
 
 # Funciones relacionada con la funcionalidad FORMULARIO
 
-# Función para marcar que el formulario ha sido modificado
-"""
-def actualizar_estado_formulario():
-    st.session_state["formulario_modificado"] = True
-    st.session_state["formulario_enviado"] = False  # Reinicia el estado de enviado
-"""
-
 @st.cache_data
 def cargar_dataframes():
     progress_text = "Cargando DataFrames. Por favor, espere..."
@@ -53,11 +46,9 @@ def obtener_dataframe_actualizado(forzar_recarga=False):
 
     # Verificar si df_form ya está en session_state
     if "df_form" in st.session_state:
-        print("Usando df_form almacenado en session_state.")
         return st.session_state["df_form"]
     else:
         # Cargar los datos desde el archivo
-        print("Cargando df_form desde el archivo CSV.")
         df_form, _ = cargar_dataframes()
 
         # Validar si hay valores faltantes significativos
@@ -67,36 +58,3 @@ def obtener_dataframe_actualizado(forzar_recarga=False):
         # Guardar en session_state
         st.session_state["df_form"] = df_form
         return df_form
-
-    
-# -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-# Programa Tipo Tableau que permite analizar datos graficamente(Pygwalker)
-
-def analizador_graficos_datos():
-    st.title("Analizador Graficos/Datos (Tipo Tableau)")
-
-    # Cargar un DataFrame de ejemplo (puedes usar tus propios datos)
-    try:
-        df = pd.read_csv('PNpalas_DF_2_procesado.csv')  # Cambia la ruta según tus datos
-    except FileNotFoundError:
-        st.error("No se encontró el archivo 'bike_sharing_dc.csv'. Por favor, verifica la ruta.")
-        return
-
-    # Inicializar Pygwalker Renderer
-    @st.cache_resource
-    def get_pyg_renderer(dataframe: pd.DataFrame) -> "StreamlitRenderer":
-        return StreamlitRenderer(dataframe)
-
-    renderer = get_pyg_renderer(df)
-
-    # Explorar los datos con Pygwalker
-    renderer.explorer()
-    
-
-#-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-#Clasificador de Golpes de Padel que a partir de una o varias imagenes nos permite distinguir el tipo de golpe y si esta bien o mal ejecutado
-
-def clasificador_golpes_padel():
-    return "Clasificador de Golpes de Padel"

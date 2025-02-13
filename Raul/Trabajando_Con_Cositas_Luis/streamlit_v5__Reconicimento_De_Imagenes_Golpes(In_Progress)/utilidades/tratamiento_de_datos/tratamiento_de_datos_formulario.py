@@ -67,9 +67,6 @@ def procesar_datos_formulario_csv():
         st.session_state["df_transformado"] = df_label
         st.session_state["mapeos_generados"] = mapeos_generados
 
-        print("Df_transformado", st.session_state["df_transformado"].head())
-        print("Label encoding aplicado correctamente.")
-
         # Crear un diccionario adicional para mapear valores codificados a originales
         mapeos_invertidos = {}
         for columna in columnas_categoricas:
@@ -78,10 +75,6 @@ def procesar_datos_formulario_csv():
                 categorias_codificadas = df_label[columna]
                 mapeo_invertido = dict(zip(categorias_codificadas, categorias_originales))
                 mapeos_invertidos[columna] = mapeo_invertido
-
-                # Mostrar el mapeo invertido por consola
-                print(f"Columna: {columna}")
-                print(mapeo_invertido)
 
     except FileNotFoundError:
         print(f"Error: El archivo '{csv_file_path}' no se encontró.")
@@ -127,9 +120,6 @@ def crear_dataframes_con_scores():
     
     st.session_state["df_scored_nivel"] = df_scored_nivel
 
-    print("DataFrames con scores generados correctamente.")
-
-
 #--------------------------------------------------------------
 
 def procesar_scores_y_guardar(output_file='df_scaled_formularios.csv'):
@@ -160,7 +150,6 @@ def procesar_scores_y_guardar(output_file='df_scaled_formularios.csv'):
         # Guardar en archivo CSV
         output_path = os.path.join(os.getcwd(), output_file)
         st.session_state["df_scaled_formularios"].to_csv(output_path, index=False)
-        print(f"Archivo '{output_path}' guardado correctamente.")
     
     except Exception as e:
         raise IOError(f"Error al guardar el archivo '{output_file}': {e}")
