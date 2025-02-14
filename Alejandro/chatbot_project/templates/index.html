@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chatbot - Play Padel Pro</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css')}}">
+</head>
+<body>
+  <div class="chat-container">
+    <h1>Play Padel Pro</h1>
+    <h2>¡Pregúntame lo que quieras sobre pádel!</h2>
+    
+    <!-- Caja para introducir consulta -->
+    <form action="/" method="POST" class="chat-form">
+      <label for="message">Escribe tu consulta aquí:</label>
+      <input type="text" id="message" name="message" required>
+      <button type="submit">Enviar</button>
+    </form>
+
+    <!-- Respuesta se muestra aquí -->
+    {% if chatbot_reply %}
+      <div class="chat-response">
+        <h2>Chatbot Response:</h2>
+        <p>{{ chatbot_reply }}</p>
+      </div>
+    {% endif %}
+  </div>
+</body>
+</html>
